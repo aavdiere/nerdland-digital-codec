@@ -4,6 +4,9 @@
 # Build directory
 build/
 
+# Cortex Debug register state
+.vscode/.cortex-debug.registers.state.json
+
 # Generated files
 *~
 *.o

@@ -68,20 +68,22 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 # -fdata-sections       Place each data item into its own section in the
 #                       output file.
 # -fomit-frame-pointer  Omit the frame pointer in functions that don’t need one.
+
+# -mabi=aapcs \
+# -fno-builtin \
+# -fomit-frame-pointer \
 set(OBJECT_GEN_FLAGS "\
     -O0 \
     -mthumb \
-    -mabi=aapcs \
     -Wall \
     -Wextra \
-    -fno-builtin \
+    -fno-common \
     -ffunction-sections \
     -fdata-sections \
-    -fomit-frame-pointer \
 ")
 
 set(CMAKE_C_FLAGS
-    "${OBJECT_GEN_FLAGS} -std=gnu99"
+    "${OBJECT_GEN_FLAGS} -std=c99"
     CACHE INTERNAL "C Compiler options"
 )
 set(CMAKE_CXX_FLAGS
@@ -98,12 +100,14 @@ set(CMAKE_ASM_FLAGS
 # --specs=nano.specs    Link with newlib-nano.
 # --specs=nosys.specs   No syscalls, provide empty implementations for the
 #                       POSIX system calls.
-set(CMAKE_EXE_LINKER_FLAGS "\
+# --specs=nano.specs \
+# --specs=nosys.specs \
+# -nostdlib \
+# -mabi=aapcs \
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
     -Wl,--gc-sections \
-    --specs=nano.specs \
     -nostartfiles \
-    -mthumb \
-    -mabi=aapcs \
+    --static \
     -Wl,-Map=${CMAKE_PROJECT_NAME}.map \
     -Wl,--cref \
     -Wl,--print-memory-usage \

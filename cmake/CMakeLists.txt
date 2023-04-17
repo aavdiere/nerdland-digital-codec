@@ -2,21 +2,16 @@ cmake_minimum_required(VERSION 3.12)
 
 ################################################################################
 # Customize
-set(BINARY stm32-template)
+set(BINARY stm-template)
 message("Project name: ${BINARY}")
 
-set(OPENCM3_DIR "../vendor/libopencm3")
+set(OPENCM3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/libopencm3")
 
 # Build type: Debug, Release
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 message("Build type: ${CMAKE_BUILD_TYPE}")
-
-################################################################################
-# ARM and MCU specific setup
-include(./toolchain-arm-none-eabi.cmake)
-include(./stm32l4.cmake)
 
 ################################################################################
 # Export CMake commands to load into Visual Studio Code
@@ -26,6 +21,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Setup project
 project(${BINARY})
 
+################################################################################
+# ARM and MCU specific setup
+include(./toolchain-arm-none-eabi.cmake)
+include(./stm32l4.cmake)
+
+################################################################################
+# Linker setup
+string(TOLOWER ${MCU_FAMILY} MCU_LIBNAME)
+
+################################################################################
+# Files
 add_executable(${BINARY}
     ../app/src/firmware.c
 )
@@ -41,6 +47,8 @@ target_compile_definitions(${BINARY} PRIVATE
 )
 
 target_compile_options(${BINARY} PRIVATE
+    -MD
+    -Wundef
     $<$<COMPILE_LANGUAGE:CXX>:
         -Wconversion
         -Wno-volatile
@@ -52,13 +60,10 @@ target_compile_options(${BINARY} PRIVATE
     >
 )
 
-string(TOLOWER ${MCU_FAMILY} MCU_LIBNAME)
-
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
-    -MD \
-    -L${OPENCM3_DIR}/lib \
-    -lopencm3_${MCU_LIBNAME} \
-")
+target_link_libraries(${BINARY} PRIVATE
+    -L${OPENCM3_DIR}/lib
+    -lopencm3_${MCU_LIBNAME}
+)
 
 print_section_sizes(${BINARY})
 create_hex_output(${BINARY})
