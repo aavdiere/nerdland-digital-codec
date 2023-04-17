@@ -1,0 +1,19 @@
+# Annoying macOS files
+.DS_Store
+
+# Build directory
+build/
+
+# Generated files
+*~
+*.o
+*.d
+*.bin
+*.elf
+*.hex
+*.srec
+*.list
+*.map
+*.stylecheck
+generated.*.ld
+.gdb_history

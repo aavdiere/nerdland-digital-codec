@@ -1,0 +1,65 @@
+cmake_minimum_required(VERSION 3.12)
+
+################################################################################
+# Customize
+set(BINARY stm32-template)
+message("Project name: ${BINARY}")
+
+set(OPENCM3_DIR "../vendor/libopencm3")
+
+# Build type: Debug, Release
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+message("Build type: ${CMAKE_BUILD_TYPE}")
+
+################################################################################
+# ARM and MCU specific setup
+include(./toolchain-arm-none-eabi.cmake)
+include(./stm32l4.cmake)
+
+################################################################################
+# Export CMake commands to load into Visual Studio Code
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+################################################################################
+# Setup project
+project(${BINARY})
+
+add_executable(${BINARY}
+    ../app/src/firmware.c
+)
+
+target_include_directories(${BINARY} PRIVATE
+    ${OPENCM3_DIR}/include
+    ../app/include
+)
+
+target_compile_definitions(${BINARY} PRIVATE
+    $<$<CONFIG:Debug>:DEBUG>
+    ${MCU_FAMILY}
+)
+
+target_compile_options(${BINARY} PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:
+        -Wconversion
+        -Wno-volatile
+        -Wold-style-cast
+        -Wuseless-cast
+        -Wsuggest-override
+        -Weffc++
+        -Wredundant-decls
+    >
+)
+
+string(TOLOWER ${MCU_FAMILY} MCU_LIBNAME)
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
+    -MD \
+    -L${OPENCM3_DIR}/lib \
+    -lopencm3_${MCU_LIBNAME} \
+")
+
+print_section_sizes(${BINARY})
+create_hex_output(${BINARY})
+create_bin_output(${BINARY})
