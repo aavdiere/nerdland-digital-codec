@@ -14,5 +14,10 @@
         "vendor/": true,
     },
     "cmake.configureOnOpen": true,
-    "cmake.sourceDirectory": "${workspaceFolder}/cmake"
+    "cmake.sourceDirectory": "${workspaceFolder}/cmake",
+    "cmake.generator": "Unix Makefiles",
+    "files.associations": {
+        "gpio.h": "c",
+        "rcc.h": "c"
+    },
 }
