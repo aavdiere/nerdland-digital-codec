@@ -34,6 +34,7 @@ string(TOLOWER ${MCU_FAMILY} MCU_LIBNAME)
 # Files
 add_executable(${BINARY}
     ../app/src/firmware.c
+    ../app/src/core/system.c
 )
 
 target_include_directories(${BINARY} PRIVATE
