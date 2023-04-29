@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.12)
 
 ################################################################################
 # Customize
-set(BINARY stm-template)
+if(NOT DEFINED BINARY)
+    set(BINARY stm-template)
+endif()
 message("Project name: ${BINARY}")
 
 set(OPENCM3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/libopencm3")
@@ -35,6 +37,7 @@ string(TOLOWER ${MCU_FAMILY} MCU_LIBNAME)
 add_executable(${BINARY}
     ../app/src/firmware.c
     ../app/src/core/system.c
+    ../app/src/core/timer.c
 )
 
 target_include_directories(${BINARY} PRIVATE

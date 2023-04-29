@@ -1,11 +1,11 @@
 {
     "version": "0.2.0",
-    "projectName": "stm-template",
+    "projectName": "stm32-vga",
     "configurations": [
         {
             "name": "JLink: Debug Application",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build/stm-template.elf",
+            "executable": "${workspaceRoot}/build/stm32-vga.elf",
             "request": "launch",
             "preLaunchTask": "flash",
             "type": "cortex-debug",
@@ -34,7 +34,7 @@
         {
             "name": "JLink: Attach to active",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build/stm-template.elf",
+            "executable": "${workspaceRoot}/build/stm32-vga.elf",
             "request": "attach",
             "type": "cortex-debug",
             "servertype": "jlink",
@@ -61,19 +61,19 @@
         {
             "name": "ST-Link: Debug Application",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceRoot}/build/stm-template.elf",
+            "executable": "${workspaceRoot}/build/stm32-vga.elf",
             "servertype": "stutil",
             "request": "launch",
             "type": "cortex-debug",
             "device": "STM32L476RG",
             "runToEntryPoint": "main",
             "interface": "swd",
-            "preLaunchTask": "build_debug"
+            "preLaunchTask": "build"
         },
         {
             "name": "ST-Link: Attach to active",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceRoot}/build/stm-template.elf",
+            "executable": "${workspaceRoot}/build/stm32-vga.elf",
             "servertype": "stutil",
             "request": "attach",
             "type": "cortex-debug",

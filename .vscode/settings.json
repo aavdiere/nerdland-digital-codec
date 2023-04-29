@@ -2,7 +2,7 @@
     "[cmake]": {
         "editor.rulers": [
             80
-        ],
+        ]
     },
     "files.exclude": {
         "**/.git": true,
@@ -18,6 +18,9 @@
     "cmake.generator": "Unix Makefiles",
     "files.associations": {
         "gpio.h": "c",
-        "rcc.h": "c"
-    },
+        "rcc.h": "c",
+        "systick.h": "c",
+        "gpio_common_all.h": "c",
+        "system.h": "c"
+    }
 }

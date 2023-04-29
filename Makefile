@@ -1,12 +1,12 @@
-BINARY			?= stm-template
+BINARY			?= stm32-vga
 BUILD_DIR		?= build
-FIRMWARE		?= $(BUILD_DIR)/$(BINARY).elf
+FIRMWARE		?= $(BUILD_DIR)/$(BINARY).bin
 BUILD_TYPE 		?= Debug
 DEVICE			?= STM32L476RG
 
 PLATFORM 		= $(if $(OS),$(OS),$(shell uname -s))
 
-.PHONY: all format build cmake clean flash monitor
+.PHONY: all format build cmake clean flash st-flash monitor
 
 # Verify platform
 ifeq ($(PLATFORM),Windows_NT)
@@ -36,6 +36,7 @@ build: cmake
 cmake: $(BUILD_DIR)/Makefile
 
 $(BUILD_DIR)/Makefile: cmake/CMakeLists.txt cmake/stm32l4.cmake cmake/toolchain-arm-none-eabi.cmake
+	rm -f $(BUILD_DIR)/CMakeCache.txt
 	cmake \
 		-G "$(BUILD_SYSTEM)" \
 		-B$(BUILD_DIR) \
@@ -56,6 +57,9 @@ $(BUILD_DIR)/jlink-script:
 	@echo speed 4000 >> $@
 	@echo loadfile $(FIRMWARE),0x08000000 >> $@
 	@echo -e "r\ng\nqc" >> $@
+
+st-flash: build
+	st-flash --reset write $(FIRMWARE) 0x8000000
 
 monitor:
 	JLinkSWOViewer -device $(DEVICE) -cpufreq 80000000 -itmport 0
