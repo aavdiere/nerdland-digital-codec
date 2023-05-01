@@ -21,6 +21,11 @@
         "rcc.h": "c",
         "systick.h": "c",
         "gpio_common_all.h": "c",
-        "system.h": "c"
+        "system.h": "c",
+        "nvic.h": "c",
+        "common.h": "c",
+        "stdbool.h": "c",
+        "timer.h": "c",
+        "stdint.h": "c"
     }
 }

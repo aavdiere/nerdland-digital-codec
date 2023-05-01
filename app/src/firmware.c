@@ -2,7 +2,7 @@
 #include <libopencm3/stm32/rcc.h>
 
 #include "core/system.h"
-#include "core/timer.h"
+#include "vga.h"
 
 #define LED_PORT (GPIOC)
 #define LED_PIN (GPIO9)
@@ -13,7 +13,7 @@ static void gpio_setup(void) {
     gpio_mode_setup(LED_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, LED_PIN);
 
     gpio_mode_setup(VGA_RED_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, VGA_RED_PIN);
-    gpio_mode_setup(VGA_GREEN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, VGA_GREEN_PIN);
+    // gpio_mode_setup(VGA_GREEN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, VGA_GREEN_PIN);
     gpio_mode_setup(VGA_BLUE_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, VGA_BLUE_PIN);
 
     /*
@@ -46,7 +46,7 @@ static void gpio_setup(void) {
 int main(void) {
     system_setup();
     gpio_setup();
-    timer_setup();
+    vga_setup();
 
     uint64_t start_time = system_get_ticks();
 
@@ -57,7 +57,7 @@ int main(void) {
             gpio_toggle(LED_PORT, LED_PIN);
 
             gpio_toggle(VGA_RED_PORT, VGA_RED_PIN);
-            gpio_toggle(VGA_GREEN_PORT, VGA_GREEN_PIN);
+            // gpio_toggle(VGA_GREEN_PORT, VGA_GREEN_PIN);
             gpio_toggle(VGA_BLUE_PORT, VGA_BLUE_PIN);
 
             start_time = system_get_ticks();
