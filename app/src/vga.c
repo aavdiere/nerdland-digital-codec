@@ -1,11 +1,101 @@
 #include "vga.h"
 
 #include <libopencm3/stm32/dma.h>
-#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/timer.h>
 
 #include <libopencm3/cm3/nvic.h>
+
+volatile uint8_t fb[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8] __attribute__((aligned(4)));
+
+static volatile uint8_t  vflag = 0;
+static volatile uint32_t vline[3] = {0, 0, 0};
+
+static const struct color_channel_t vga_red = {
+    .rcc_dma           = RCC_DMA2,
+    .dma               = DMA2,
+    .dma_channel       = DMA_CHANNEL2,
+    .dma_stream        = 3,
+    .dma_irqn          = NVIC_DMA2_CHANNEL2_IRQ,
+    .rcc_spi           = RCC_SPI3,
+    .spi               = SPI3,
+    .spi_irqn          = NVIC_SPI3_IRQ,
+    .spi_address       = (uint32_t)&SPI3_DR,
+    .rcc_gpio          = RCC_GPIOC,
+    .gpio_port         = VGA_RED_PORT,
+    .gpio_pin          = VGA_RED_PIN,
+    .gpio_af           = GPIO_AF6,
+    .frame_buffer      = &fb[0][0],
+    .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
+};
+
+static const struct color_channel_t vga_green = {
+    .rcc_dma           = RCC_DMA1,
+    .dma               = DMA1,
+    .dma_channel       = DMA_CHANNEL5,
+    .dma_stream        = 1,
+    .dma_irqn          = NVIC_DMA1_CHANNEL5_IRQ,
+    .rcc_spi           = RCC_SPI2,
+    .spi               = SPI2,
+    .spi_irqn          = NVIC_SPI2_IRQ,
+    .spi_address       = (uint32_t)&SPI2_DR,
+    .rcc_gpio          = RCC_GPIOC,
+    .gpio_port         = VGA_GREEN_PORT,
+    .gpio_pin          = VGA_GREEN_PIN,
+    .gpio_af           = GPIO_AF5,
+    .frame_buffer      = &fb[0][0],
+    .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
+};
+
+static const struct color_channel_t vga_blue = {
+    .rcc_dma           = RCC_DMA1,
+    .dma               = DMA1,
+    .dma_channel       = DMA_CHANNEL3,
+    .dma_stream        = 1,
+    .dma_irqn          = NVIC_DMA1_CHANNEL3_IRQ,
+    .rcc_spi           = RCC_SPI1,
+    .spi               = SPI1,
+    .spi_irqn          = NVIC_SPI1_IRQ,
+    .spi_address       = (uint32_t)&SPI1_DR,
+    .rcc_gpio          = RCC_GPIOA,
+    .gpio_port         = VGA_BLUE_PORT,
+    .gpio_pin          = VGA_BLUE_PIN,
+    .gpio_af           = GPIO_AF5,
+    .frame_buffer      = &fb[0][1],
+    .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
+};
+
+void vga_setup(void) {
+    vidEmptyScreen();
+    vidDemoScreen();
+
+    hsync_setup();
+    vsync_setup();
+
+    // color_channel_setup(vga_red);
+    color_channel_setup(vga_green);
+    // color_channel_setup(vga_blue);
+}
+
+void vidEmptyScreen(void) {
+    uint16_t x, y;
+
+    for (y = 0; y < V_VISIBLE; y++) {
+        for (x = 0; x < (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8; x++) {
+            fb[y][x] = 0x00;
+        }
+    }
+}
+
+void vidDemoScreen(void) {
+    uint16_t x, y;
+
+    for (y = 0; y < V_VISIBLE; y++) {
+        for (x = H_KEEPOUT / 8; x < (H_KEEPOUT + H_VISIBLE) / 8; x++) {
+            fb[y][x] = 0xAA;
+        }
+    }
+}
 
 void hsync_setup(void) {
     /* Enable TIM1 clock */
@@ -21,7 +111,8 @@ void hsync_setup(void) {
     /* Pixel clock should be 40MHz from the 80MHz system clock, set prescaler to / 2 */
     timer_set_prescaler(TIM1, 1);
     /* Maximum counter value of the timer, value AFTER which counter rolls over */
-    timer_set_period(TIM1, H_WHOLE_LINE - 1);
+    /* Some manual tuning required */
+    timer_set_period(TIM1, H_WHOLE_LINE - 1 + 2);
 
     /* Configure TIM1 Channel 1 */
     /* Output compare value */
@@ -36,7 +127,8 @@ void hsync_setup(void) {
 
     /* Configure TIM1 Channel 2 */
     /* Output compare value */
-    timer_set_oc_value(TIM1, TIM_OC2, H_SYNC_PULSE + H_BACK_PORCH);
+    /* Some manual tuning required */
+    timer_set_oc_value(TIM1, TIM_OC2, H_SYNC_PULSE + H_BACK_PORCH - H_KEEPOUT - 16);
     /* Set PWM mode
      * - PWM1: high if counter < output compare
      * - PWM2: low if counter < output compare
@@ -56,6 +148,7 @@ void hsync_setup(void) {
      */
     nvic_set_priority(NVIC_TIM1_CC_IRQ, 0);
     nvic_enable_irq(NVIC_TIM1_CC_IRQ);
+    timer_enable_irq(TIM1, TIM_DIER_CC2IE);
 }
 
 /*
@@ -65,6 +158,20 @@ void hsync_setup(void) {
  * After which, clear the interrupt flag for the corresponding channel.
  */
 void tim1_cc_isr(void) {
+    if (vflag == 1) {
+        /* This needs to happen FAST, so raw register is required */
+        // *(uint32_t *)((DMA2) + 0x08 + (0x14 * ((DMA_CHANNEL2) - 1))) |= DMA_CCR_EN;
+        *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL5) - 1))) |= DMA_CCR_EN;
+        // *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL3) - 1))) |= DMA_CCR_EN;
+
+        // DMA_CCR(vga_red.dma, vga_red.dma_channel) |= DMA_CCR_EN;
+        // DMA_CCR(vga_green.dma, vga_green.dma_channel) |= DMA_CCR_EN;
+        // DMA_CCR(vga_blue.dma, vga_blue.dma_channel) |= DMA_CCR_EN;
+
+        // dma_enable_channel(vga_red.dma, vga_red.dma_channel);
+        // dma_enable_channel(vga_green.dma, vga_green.dma_channel);
+        // dma_enable_channel(vga_blue.dma, vga_blue.dma_channel);
+    }
     timer_clear_flag(TIM1, TIM_SR_CC2IF);
 }
 
@@ -119,6 +226,7 @@ void vsync_setup(void) {
      */
     nvic_set_priority(NVIC_TIM2_IRQ, 0);
     nvic_enable_irq(NVIC_TIM2_IRQ);
+    timer_enable_irq(TIM2, TIM_DIER_CC2IE);
 }
 
 /*
@@ -127,93 +235,166 @@ void vsync_setup(void) {
  * After which, clear the interrupt flag for the corresponding channel.
  */
 void tim2_isr(void) {
+    vflag = 1;
     timer_clear_flag(TIM2, TIM_SR_CC2IF);
 }
 
-uint8_t fb[V_VISIBLE][H_VISIBLE / 8] __attribute__((aligned(4)));
+void color_channel_setup(struct color_channel_t color_channel) {
+    /* Enable DMA clock */
+    rcc_periph_clock_enable(color_channel.rcc_dma);
 
-void spi_green_setup(void) {
-    /* Setup GPIO for MOSI for green channel (alternate function 5) */
-    gpio_mode_setup(VGA_GREEN_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, VGA_GREEN_PIN);
-    gpio_set_af(VGA_GREEN_PORT, GPIO_AF5, VGA_GREEN_PIN);
-    gpio_set_output_options(VGA_GREEN_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_HIGH, VGA_GREEN_PIN);
+    /* Set DMA interrupt priority */
+    nvic_set_priority(color_channel.dma_irqn, 0);
+    nvic_enable_irq(color_channel.dma_irqn);
+
+    /* Enable GPIO clock */
+    rcc_periph_clock_enable(color_channel.rcc_gpio);
+
+    /* Setup GPIO for MOSI only */
+    gpio_mode_setup(color_channel.gpio_port, GPIO_MODE_AF, GPIO_PUPD_NONE, color_channel.gpio_pin);
+    gpio_set_af(color_channel.gpio_port, color_channel.gpio_af, color_channel.gpio_pin);
+    gpio_set_output_options(
+        color_channel.gpio_port, GPIO_OTYPE_PP, GPIO_OSPEED_HIGH, color_channel.gpio_pin);
+
+    /* Enable SPI clock */
+    rcc_periph_clock_enable(color_channel.rcc_spi);
+
+    /* Setup SPI as master */
+    spi_set_master_mode(color_channel.spi);
+    /* Has to be set up as full duplex (even though only transmit is used) */
+    spi_set_full_duplex_mode(color_channel.spi);
+    /* Set as transmit only */
+    spi_set_bidirectional_transmit_only_mode(color_channel.spi);
+    /* Set 8 bit data size */
+    spi_set_data_size(color_channel.spi, SPI_CR2_DS_8BIT);
+    /* Clock polarity */
+    spi_set_clock_polarity_0(color_channel.spi);
+    /* Clock phase */
+    spi_set_clock_phase_1(color_channel.spi);
+    /* This has to be enabled, otherwise it doesn't work */
+    spi_enable_software_slave_management(color_channel.spi);
+    /* Set it high */
+    spi_set_nss_high(color_channel.spi);
+    /* Use 40MHz clock (div 2) */
+    spi_set_baudrate_prescaler(color_channel.spi, SPI_CR1_BR_FPCLK_DIV_2);
+    /* MSB first */
+    spi_send_msb_first(color_channel.spi);
+    /* Disable cyclic check */
+    spi_disable_crc(color_channel.spi);
+
+    /* Set DMA interrupt priority */
+    nvic_set_priority(color_channel.spi_irqn, 0);
+    nvic_enable_irq(color_channel.spi_irqn);
 
     /* Setup DMA */
+    dma_channel_reset(color_channel.dma, color_channel.dma_channel);
+
     /* Disable channel as it will be enabled by the HSYNC/VSYNC pulses */
-    dma_disable_channel(DMA1, DMA_CHANNEL5);
+    dma_disable_channel(color_channel.dma, color_channel.dma_channel);
 
-    /* Peripheral is SPI buffer */
-    dma_set_peripheral_address(DMA1, DMA_CHANNEL5, (uint32_t)&SPI2_DR);
-    /* Set initial address to beginning of frame */
-    dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[0][0]);
-    /* Read 800 bits = 100 bytes from memory */
-    dma_set_read_from_memory(DMA1, DMA_CHANNEL5);
-    dma_set_number_of_data(DMA1, DMA_CHANNEL5, H_VISIBLE / 8);
+    /* Select specific DMA stream */
+    dma_set_channel_request(color_channel.dma, color_channel.dma_channel, color_channel.dma_stream);
+    /* From memory to peripheral */
+    dma_set_read_from_memory(color_channel.dma, color_channel.dma_channel);
     /* Keep peripheral address the same */
-    dma_disable_peripheral_increment_mode(DMA1, DMA_CHANNEL5);
+    dma_disable_peripheral_increment_mode(color_channel.dma, color_channel.dma_channel);
     /* Increment the memory address */
-    dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL5);
+    dma_enable_memory_increment_mode(color_channel.dma, color_channel.dma_channel);
+    /* Medium priority */
+    dma_set_priority(color_channel.dma, color_channel.dma_channel, DMA_CCR_PL_MEDIUM);
+    /* Enable end of transfer interrupt, this will be used to disable the DMA */
+    dma_enable_transfer_complete_interrupt(color_channel.dma, color_channel.dma_channel);
+
+    /* Set initial address to beginning of frame */
+    dma_set_memory_address(
+        color_channel.dma, color_channel.dma_channel, (uint32_t)color_channel.frame_buffer);
     /* Set size to be byte */
-    dma_set_peripheral_size(DMA1, DMA_CHANNEL5, DMA_CCR_PSIZE_8BIT);
-    dma_set_memory_size(DMA1, DMA_CHANNEL5, DMA_CCR_MSIZE_8BIT);
-    /* Low priority */
-    dma_set_priority(DMA1, DMA_CHANNEL5, DMA_CCR_PL_LOW);
-    /* Memory to peripheral */
-    dma_enable_mem2mem_mode(DMA1, DMA_CHANNEL5);
+    dma_set_memory_size(color_channel.dma, color_channel.dma_channel, DMA_CCR_MSIZE_8BIT);
+    dma_set_number_of_data(
+        color_channel.dma, color_channel.dma_channel, color_channel.frame_buffer_size);
+    /* Peripheral is SPI buffer */
+    dma_set_peripheral_address(
+        color_channel.dma, color_channel.dma_channel, color_channel.spi_address);
+    /* Set size to be byte */
+    dma_set_peripheral_size(color_channel.dma, color_channel.dma_channel, DMA_CCR_PSIZE_8BIT);
 
-    /* Link DMA for SPI */
-    spi_enable_tx_dma(SPI2);
-
-    /* Setup SPI */
-    spi_disable(SPI2);
-    spi_init_master(SPI2,
-                    SPI_CR1_BAUDRATE_FPCLK_DIV_2,
-                    SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
-                    SPI_CR1_CPHA_CLK_TRANSITION_2,
-                    SPI_CR1_MSBFIRST);
-
-    /* Set as transmit only */
-    spi_set_bidirectional_transmit_only_mode(SPI2);
-    spi_set_unidirectional_mode(SPI2);
-
-    /* Set 8 bit data size */
-    spi_set_data_size(SPI2, SPI_CR2_DS_8BIT);
-
-    /*
-     * Set NSS management to software.
-     *
-     * Note:
-     * Setting nss high is very important, even if we are controlling the GPIO
-     * ourselves this bit needs to be at least set to 1, otherwise the spi
-     * peripheral will not send any data out.
-     */
-    spi_enable_software_slave_management(SPI2);
-    spi_set_nss_high(SPI2);
-
-    spi_disable_crc(SPI2);
-
+    /* Enable SPI TX DMA */
+    spi_enable_tx_dma(color_channel.spi);
     /* Enable SPI */
-    spi_enable(SPI2);
-
-    /* Setup interupt functions at end of transmission */
-    nvic_enable_irq(NVIC_DMA1_CHANNEL5_IRQ);
-    nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0);
-
-    /* Enable end of transfer interrupt */
-    dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL5);
+    spi_enable(color_channel.spi);
 }
 
-/*
+/* Red interrupt
+ * This interrupt is generated at the end of every line.
+ * It will increment the line number and set the corresponding line pointer
+ * in the DMA register.
+ */
+void dma2_channel2_isr(void) {
+    dma_disable_channel(DMA2, DMA_CHANNEL2);
+
+    vline[0]++;
+
+    if (vline[0] == V_VISIBLE) {
+        vflag = vline[0] = 0;
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[0][0]);
+    } else {
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[vline[0]][0]);
+    }
+
+    /* Number of data points needs to be reset as it is decremented
+     * internally during each transmit.
+     */
+    dma_set_number_of_data(DMA2, DMA_CHANNEL2, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
+
+    dma_clear_interrupt_flags(DMA2, DMA_CHANNEL2, DMA_TCIF);
+}
+
+/* Green interrupt
  * This interrupt is generated at the end of every line.
  * It will increment the line number and set the corresponding line pointer
  * in the DMA register.
  */
 void dma1_channel5_isr(void) {
-    return;
+    dma_disable_channel(DMA1, DMA_CHANNEL5);
+
+    vline[1]++;
+
+    if (vline[1] == V_VISIBLE) {
+        vflag = vline[1] = 0;
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[0][0]);
+    } else {
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[vline[1]][0]);
+    }
+
+    /* Number of data points needs to be reset as it is decremented
+     * internally during each transmit.
+     */
+    dma_set_number_of_data(DMA1, DMA_CHANNEL5, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
+
+    dma_clear_interrupt_flags(DMA1, DMA_CHANNEL5, DMA_TCIF);
 }
 
-void vga_setup(void) {
-    spi_green_setup();
-    hsync_setup();
-    vsync_setup();
+/* Blue interrupt
+ * This interrupt is generated at the end of every line.
+ * It will increment the line number and set the corresponding line pointer
+ * in the DMA register.
+ */
+void dma1_channel3_isr(void) {
+    dma_disable_channel(DMA1, DMA_CHANNEL3);
+
+    vline[2]++;
+
+    if (vline[2] == V_VISIBLE) {
+        vflag = vline[2] = 0;
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[0][0]);
+    } else {
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[vline[2]][0]);
+    }
+
+    /* Number of data points needs to be reset as it is decremented
+     * internally during each transmit.
+     */
+    dma_set_number_of_data(DMA1, DMA_CHANNEL3, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
+
+    dma_clear_interrupt_flags(DMA1, DMA_CHANNEL3, DMA_TCIF);
 }

@@ -13,7 +13,7 @@
         "**/Thumbs.db": true,
         "vendor/": true,
     },
-    "cmake.configureOnOpen": true,
+    "cmake.configureOnOpen": false,
     "cmake.sourceDirectory": "${workspaceFolder}/cmake",
     "cmake.generator": "Unix Makefiles",
     "files.associations": {
@@ -26,6 +26,8 @@
         "common.h": "c",
         "stdbool.h": "c",
         "timer.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "dma.h": "c",
+        "spi.h": "c"
     }
 }

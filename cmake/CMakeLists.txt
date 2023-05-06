@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.12)
 ################################################################################
 # Customize
 if(NOT DEFINED BINARY)
-    set(BINARY stm-template)
+    set(BINARY stm32-vga)
 endif()
 message("Project name: ${BINARY}")
 
