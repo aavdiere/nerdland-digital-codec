@@ -107,7 +107,7 @@ void glRectangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t gl
     glLine(x1, y0, x1, y1, gl_op);
 }
 
-void glSprite(uint8_t *sprite, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t gl_op) {
+void glSprite(const uint8_t *sprite, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t gl_op) {
     uint16_t dx, dy;
 
     for (dy = 0; dy < h; dy++) {
@@ -121,7 +121,7 @@ void glSprite(uint8_t *sprite, uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
 
 void glChar(const char ch, uint16_t x, uint16_t y, uint16_t gl_op) {
     uint8_t  char_idx = (uint8_t)ch - 0x20;
-    uint8_t *sprite   = &font_menlo[char_idx * 32 * 3];
+    const uint8_t *sprite   = &font_menlo[char_idx * 32 * 3];
     glSprite(sprite, x, y, 20, 32, gl_op);
 }
 

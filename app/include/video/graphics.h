@@ -18,7 +18,7 @@ void glClear(void);
 void glPoint(uint16_t x, uint16_t y, uint16_t gl_op);
 void glLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t gl_op);
 void glRectangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t gl_op);
-void glSprite(uint8_t *sprite, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t gl_op);
+void glSprite(const uint8_t *sprite, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t gl_op);
 void glChar(const char ch, uint16_t x, uint16_t y, uint16_t gl_op);
 void glText(const char *str, uint16_t x, uint16_t y, uint16_t gl_op);
 
