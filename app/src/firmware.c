@@ -57,6 +57,8 @@ int main(void) {
     glRectangle(400 + border, border, 800 - border, 600 - border, GL_OP_OR);
     glRectangle(400 + border, border, 800 - border, 600 - border, GL_OP_OR);
 
+    glText("Hello, World!", 20, 20, GL_OP_OR);
+
     uint64_t start_time = system_get_ticks();
 
     /* Infinte loop */

@@ -24,7 +24,7 @@ endif
 all: build
 
 # Formats all user modified source files (add ones that are missing)
-SRCS := $(shell find app -name '*.[ch]' -or -name '*.[ch]pp')
+SRCS := $(shell find app -not -name 'font.c' -name '*.[ch]' -or -name '*.[ch]pp')
 format: $(addsuffix .format, $(SRCS))
 
 %.format: %

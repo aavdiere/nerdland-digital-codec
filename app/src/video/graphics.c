@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <string.h>
+
 #include "video/graphics.h"
 #include "video/vga.h"
 
@@ -113,5 +116,17 @@ void glSprite(uint8_t *sprite, uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
                 glPoint(x + dx, y + dy, gl_op);
             }
         }
+    }
+}
+
+void glChar(const char ch, uint16_t x, uint16_t y, uint16_t gl_op) {
+    uint8_t  char_idx = (uint8_t)ch - 0x20;
+    uint8_t *sprite   = &font_menlo[char_idx * 32 * 3];
+    glSprite(sprite, x, y, 20, 32, gl_op);
+}
+
+void glText(const char *str, uint16_t x, uint16_t y, uint16_t gl_op) {
+    for (uint16_t i = 0; i < strlen(str); i++) {
+        glChar(str[i], x, y, gl_op);
     }
 }
