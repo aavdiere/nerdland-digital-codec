@@ -93,7 +93,7 @@ void tim1_cc_isr(void) {
     if (vflag == 1) {
         /* This needs to happen FAST, so raw register is required */
         // *(uint32_t *)((DMA2) + 0x08 + (0x14 * ((DMA_CHANNEL2) - 1))) |= DMA_CCR_EN;
-        // *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL5) - 1))) |= DMA_CCR_EN;
+        *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL5) - 1))) |= DMA_CCR_EN;
         // *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL3) - 1))) |= DMA_CCR_EN;
 
         // DMA_CCR(vga_red.dma, vga_red.dma_channel) |= DMA_CCR_EN;
@@ -101,7 +101,7 @@ void tim1_cc_isr(void) {
         // DMA_CCR(vga_blue.dma, vga_blue.dma_channel) |= DMA_CCR_EN;
 
         // dma_enable_channel(vga_red.dma, vga_red.dma_channel);
-        dma_enable_channel(vga_green.dma, vga_green.dma_channel);
+        // dma_enable_channel(vga_green.dma, vga_green.dma_channel);
         // dma_enable_channel(vga_blue.dma, vga_blue.dma_channel);
     }
     timer_clear_flag(TIM1, TIM_SR_CC2IF);
@@ -209,8 +209,8 @@ void color_channel_setup(struct color_channel_t color_channel) {
     spi_set_nss_high(color_channel.spi);
     /* Use 40MHz clock (div 2) */
     spi_set_baudrate_prescaler(color_channel.spi, SPI_CR1_BR_FPCLK_DIV_2);
-    /* MSB first */
-    spi_send_msb_first(color_channel.spi);
+    /* LSB first */
+    spi_send_lsb_first(color_channel.spi);
     /* Disable cyclic check */
     spi_disable_crc(color_channel.spi);
 
@@ -242,7 +242,7 @@ void color_channel_setup(struct color_channel_t color_channel) {
     /* Set size to be byte */
     dma_set_memory_size(color_channel.dma, color_channel.dma_channel, DMA_CCR_MSIZE_8BIT);
     dma_set_number_of_data(
-        color_channel.dma, color_channel.dma_channel, (H_KEEPOUT + H_VISIBLE) / 8);
+        color_channel.dma, color_channel.dma_channel, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
     /* Peripheral is SPI buffer */
     dma_set_peripheral_address(
         color_channel.dma, color_channel.dma_channel, color_channel.spi_address);
@@ -275,7 +275,7 @@ void dma2_channel2_isr(void) {
     /* Number of data points needs to be reset as it is decremented
      * internally during each transmit.
      */
-    dma_set_number_of_data(DMA2, DMA_CHANNEL2, (H_KEEPOUT + H_VISIBLE) / 8);
+    dma_set_number_of_data(DMA2, DMA_CHANNEL2, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
 
     dma_clear_interrupt_flags(DMA2, DMA_CHANNEL2, DMA_TCIF);
 }
@@ -300,7 +300,7 @@ void dma1_channel5_isr(void) {
     /* Number of data points needs to be reset as it is decremented
      * internally during each transmit.
      */
-    dma_set_number_of_data(DMA1, DMA_CHANNEL5, (H_KEEPOUT + H_VISIBLE) / 8);
+    dma_set_number_of_data(DMA1, DMA_CHANNEL5, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
 
     dma_clear_interrupt_flags(DMA1, DMA_CHANNEL5, DMA_TCIF);
 }
@@ -325,7 +325,7 @@ void dma1_channel3_isr(void) {
     /* Number of data points needs to be reset as it is decremented
      * internally during each transmit.
      */
-    dma_set_number_of_data(DMA1, DMA_CHANNEL3, (H_KEEPOUT + H_VISIBLE) / 8);
+    dma_set_number_of_data(DMA1, DMA_CHANNEL3, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
 
     dma_clear_interrupt_flags(DMA1, DMA_CHANNEL3, DMA_TCIF);
 }
