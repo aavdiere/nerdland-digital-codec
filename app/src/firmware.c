@@ -51,13 +51,11 @@ int main(void) {
 
     glClear();
 
-    glPoint(1, 1, GL_OP_OR);
-    glPoint(3, 1, GL_OP_OR);
-    glPoint(5, 1, GL_OP_OR);
-
-    glPoint(1, 599, GL_OP_OR);
-    glPoint(3, 599, GL_OP_OR);
-    glPoint(5, 599, GL_OP_OR);
+    uint32_t border = 10;
+    glRectangle(0 + border, border, 400 - border, 600 - border, GL_OP_OR);
+    glRectangle(0 + border, border, 400 - border, 600 - border, GL_OP_OR);
+    glRectangle(400 + border, border, 800 - border, 600 - border, GL_OP_OR);
+    glRectangle(400 + border, border, 800 - border, 600 - border, GL_OP_OR);
 
     uint64_t start_time = system_get_ticks();
 

@@ -39,6 +39,7 @@ add_executable(${BINARY}
     ../app/src/core/system.c
     ../app/src/video/vga.c
     ../app/src/video/graphics.c
+    ../app/src/video/font.c
 )
 
 target_include_directories(${BINARY} PRIVATE
