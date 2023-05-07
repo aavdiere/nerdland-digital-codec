@@ -1,72 +1,16 @@
 #include "vga.h"
 
-#include <libopencm3/stm32/dma.h>
-#include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/timer.h>
 
-#include <libopencm3/cm3/nvic.h>
+volatile uint8_t buffer[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8]
+    __attribute__((aligned(4)));
+volatile uint8_t *frame_buffer[V_VISIBLE];
 
-volatile uint8_t fb[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8] __attribute__((aligned(4)));
-
-static volatile uint8_t  vflag = 0;
+static volatile uint8_t  vflag    = 0;
 static volatile uint32_t vline[3] = {0, 0, 0};
 
-static const struct color_channel_t vga_red = {
-    .rcc_dma           = RCC_DMA2,
-    .dma               = DMA2,
-    .dma_channel       = DMA_CHANNEL2,
-    .dma_stream        = 3,
-    .dma_irqn          = NVIC_DMA2_CHANNEL2_IRQ,
-    .rcc_spi           = RCC_SPI3,
-    .spi               = SPI3,
-    .spi_irqn          = NVIC_SPI3_IRQ,
-    .spi_address       = (uint32_t)&SPI3_DR,
-    .rcc_gpio          = RCC_GPIOC,
-    .gpio_port         = VGA_RED_PORT,
-    .gpio_pin          = VGA_RED_PIN,
-    .gpio_af           = GPIO_AF6,
-    .frame_buffer      = &fb[0][0],
-    .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
-};
-
-static const struct color_channel_t vga_green = {
-    .rcc_dma           = RCC_DMA1,
-    .dma               = DMA1,
-    .dma_channel       = DMA_CHANNEL5,
-    .dma_stream        = 1,
-    .dma_irqn          = NVIC_DMA1_CHANNEL5_IRQ,
-    .rcc_spi           = RCC_SPI2,
-    .spi               = SPI2,
-    .spi_irqn          = NVIC_SPI2_IRQ,
-    .spi_address       = (uint32_t)&SPI2_DR,
-    .rcc_gpio          = RCC_GPIOC,
-    .gpio_port         = VGA_GREEN_PORT,
-    .gpio_pin          = VGA_GREEN_PIN,
-    .gpio_af           = GPIO_AF5,
-    .frame_buffer      = &fb[0][0],
-    .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
-};
-
-static const struct color_channel_t vga_blue = {
-    .rcc_dma           = RCC_DMA1,
-    .dma               = DMA1,
-    .dma_channel       = DMA_CHANNEL3,
-    .dma_stream        = 1,
-    .dma_irqn          = NVIC_DMA1_CHANNEL3_IRQ,
-    .rcc_spi           = RCC_SPI1,
-    .spi               = SPI1,
-    .spi_irqn          = NVIC_SPI1_IRQ,
-    .spi_address       = (uint32_t)&SPI1_DR,
-    .rcc_gpio          = RCC_GPIOA,
-    .gpio_port         = VGA_BLUE_PORT,
-    .gpio_pin          = VGA_BLUE_PIN,
-    .gpio_af           = GPIO_AF5,
-    .frame_buffer      = &fb[0][1],
-    .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
-};
-
 void vga_setup(void) {
-    vidEmptyScreen();
+    buffer_setup();
     vidDemoScreen();
 
     hsync_setup();
@@ -77,13 +21,14 @@ void vga_setup(void) {
     // color_channel_setup(vga_blue);
 }
 
-void vidEmptyScreen(void) {
+void buffer_setup(void) {
     uint16_t x, y;
 
     for (y = 0; y < V_VISIBLE; y++) {
         for (x = 0; x < (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8; x++) {
-            fb[y][x] = 0x00;
+            buffer[y][x] = 0x00;
         }
+        frame_buffer[y] = &buffer[y][H_KEEPOUT / 8];
     }
 }
 
@@ -91,8 +36,8 @@ void vidDemoScreen(void) {
     uint16_t x, y;
 
     for (y = 0; y < V_VISIBLE; y++) {
-        for (x = H_KEEPOUT / 8; x < (H_KEEPOUT + H_VISIBLE) / 8; x++) {
-            fb[y][x] = 0xAA;
+        for (x = 0; x < H_VISIBLE / 8; x++) {
+            frame_buffer[y][x] = 0xFF;
         }
     }
 }
@@ -161,7 +106,7 @@ void tim1_cc_isr(void) {
     if (vflag == 1) {
         /* This needs to happen FAST, so raw register is required */
         // *(uint32_t *)((DMA2) + 0x08 + (0x14 * ((DMA_CHANNEL2) - 1))) |= DMA_CCR_EN;
-        *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL5) - 1))) |= DMA_CCR_EN;
+        // *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL5) - 1))) |= DMA_CCR_EN;
         // *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL3) - 1))) |= DMA_CCR_EN;
 
         // DMA_CCR(vga_red.dma, vga_red.dma_channel) |= DMA_CCR_EN;
@@ -169,7 +114,7 @@ void tim1_cc_isr(void) {
         // DMA_CCR(vga_blue.dma, vga_blue.dma_channel) |= DMA_CCR_EN;
 
         // dma_enable_channel(vga_red.dma, vga_red.dma_channel);
-        // dma_enable_channel(vga_green.dma, vga_green.dma_channel);
+        dma_enable_channel(vga_green.dma, vga_green.dma_channel);
         // dma_enable_channel(vga_blue.dma, vga_blue.dma_channel);
     }
     timer_clear_flag(TIM1, TIM_SR_CC2IF);
@@ -336,9 +281,9 @@ void dma2_channel2_isr(void) {
 
     if (vline[0] == V_VISIBLE) {
         vflag = vline[0] = 0;
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[0][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[0][0]);
     } else {
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[vline[0]][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[vline[0]][0]);
     }
 
     /* Number of data points needs to be reset as it is decremented
@@ -361,9 +306,9 @@ void dma1_channel5_isr(void) {
 
     if (vline[1] == V_VISIBLE) {
         vflag = vline[1] = 0;
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[0][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[0][0]);
     } else {
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[vline[1]][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[vline[1]][0]);
     }
 
     /* Number of data points needs to be reset as it is decremented
@@ -386,9 +331,9 @@ void dma1_channel3_isr(void) {
 
     if (vline[2] == V_VISIBLE) {
         vflag = vline[2] = 0;
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[0][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[0][0]);
     } else {
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&fb[vline[2]][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[vline[2]][0]);
     }
 
     /* Number of data points needs to be reset as it is decremented
