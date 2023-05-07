@@ -17,14 +17,6 @@ void tim1_cc_isr(void);
 void vsync_setup(void);
 void tim2_isr(void);
 
-/* Buffer */
-extern volatile uint8_t (*raw_buffer)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8];
-#define buffer (*raw_buffer)
-
-// extern volatile uint8_t buffer[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8]
-//     __attribute__((aligned(4)));
-extern volatile uint8_t *frame_buffer[V_VISIBLE];
-
 /* Generic struct that hold all settings
  * related to a single color channel
  */
@@ -44,8 +36,6 @@ struct color_channel_t {
     uint32_t              gpio_port;
     uint16_t              gpio_pin;
     uint8_t               gpio_af;
-    // volatile uint8_t     *frame_buffer;
-    // uint16_t              frame_buffer_size;
 };
 
 static const struct color_channel_t vga_red = {
@@ -62,8 +52,6 @@ static const struct color_channel_t vga_red = {
     .gpio_port   = VGA_RED_PORT,
     .gpio_pin    = VGA_RED_PIN,
     .gpio_af     = GPIO_AF6,
-    // .frame_buffer      = &buffer[0][0],
-    // .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
 };
 
 static const struct color_channel_t vga_green = {
@@ -80,8 +68,6 @@ static const struct color_channel_t vga_green = {
     .gpio_port   = VGA_GREEN_PORT,
     .gpio_pin    = VGA_GREEN_PIN,
     .gpio_af     = GPIO_AF5,
-    // .frame_buffer      = &buffer[0][0],
-    // .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
 };
 
 static const struct color_channel_t vga_blue = {
@@ -98,8 +84,6 @@ static const struct color_channel_t vga_blue = {
     .gpio_port   = VGA_BLUE_PORT,
     .gpio_pin    = VGA_BLUE_PIN,
     .gpio_af     = GPIO_AF5,
-    // .frame_buffer      = &buffer[0][0],
-    // .frame_buffer_size = (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8,
 };
 
 void color_channel_setup(struct color_channel_t color_channel);

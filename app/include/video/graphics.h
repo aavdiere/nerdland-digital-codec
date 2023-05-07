@@ -8,6 +8,9 @@
 #define GL_OP_AND 2
 #define GL_OP_OR 3
 
+/* 2 + x as there are 2 bytes of settling region at the beginning of the line */
+#define PIXEL(x, y) (uint8_t *)(0x22000000 | (y * 104) << 5 | (2 + x) << 2)
+
 void glClear(void);
 void glPoint(uint16_t x, uint16_t y, uint16_t gl_op);
 void glLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t gl_op);

@@ -2,14 +2,10 @@
 
 #include <libopencm3/stm32/timer.h>
 
-volatile uint8_t (*raw_buffer)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8] =
-    (volatile uint8_t(*)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8])(0x20000000);
+#define raw_buffer (0x20000000)
 
-// volatile uint8_t buffer[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8]
-//     __attribute__((aligned(4)));
-// volatile uint8_t (*raw_buffer)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8] = &buffer;
-
-volatile uint8_t *frame_buffer[V_VISIBLE];
+// volatile uint8_t (*raw_buffer)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8] =
+//     (volatile uint8_t(*)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8])(0x20000000);
 
 static volatile uint8_t  vflag    = 0;
 static volatile uint32_t vline[3] = {0, 0, 0};
@@ -26,13 +22,10 @@ void vga_setup(void) {
 }
 
 void buffer_setup(void) {
-    uint16_t x, y;
+    uint32_t i;
 
-    for (y = 0; y < V_VISIBLE; y++) {
-        for (x = 0; x < (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8; x++) {
-            buffer[y][x] = 0x00;
-        }
-        frame_buffer[y] = &buffer[y][H_KEEPOUT / 8];
+    for (i = 0; i < 1 << 16; i++) {
+        *(uint8_t *)(raw_buffer + i) = 0x00;
     }
 }
 
@@ -245,11 +238,11 @@ void color_channel_setup(struct color_channel_t color_channel) {
     dma_enable_transfer_complete_interrupt(color_channel.dma, color_channel.dma_channel);
 
     /* Set initial address to beginning of frame */
-    dma_set_memory_address(color_channel.dma, color_channel.dma_channel, (uint32_t)&buffer[0][0]);
+    dma_set_memory_address(color_channel.dma, color_channel.dma_channel, (uint32_t)raw_buffer);
     /* Set size to be byte */
     dma_set_memory_size(color_channel.dma, color_channel.dma_channel, DMA_CCR_MSIZE_8BIT);
     dma_set_number_of_data(
-        color_channel.dma, color_channel.dma_channel, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
+        color_channel.dma, color_channel.dma_channel, (H_KEEPOUT + H_VISIBLE) / 8);
     /* Peripheral is SPI buffer */
     dma_set_peripheral_address(
         color_channel.dma, color_channel.dma_channel, color_channel.spi_address);
@@ -274,15 +267,15 @@ void dma2_channel2_isr(void) {
 
     if (vline[0] == V_VISIBLE) {
         vflag = vline[0] = 0;
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[0][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)raw_buffer);
     } else {
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[vline[0]][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)(raw_buffer + vline[0] * 104));
     }
 
     /* Number of data points needs to be reset as it is decremented
      * internally during each transmit.
      */
-    dma_set_number_of_data(DMA2, DMA_CHANNEL2, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
+    dma_set_number_of_data(DMA2, DMA_CHANNEL2, (H_KEEPOUT + H_VISIBLE) / 8);
 
     dma_clear_interrupt_flags(DMA2, DMA_CHANNEL2, DMA_TCIF);
 }
@@ -299,15 +292,15 @@ void dma1_channel5_isr(void) {
 
     if (vline[1] == V_VISIBLE) {
         vflag = vline[1] = 0;
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[0][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)raw_buffer);
     } else {
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[vline[1]][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)(raw_buffer + vline[1] * 104));
     }
 
     /* Number of data points needs to be reset as it is decremented
      * internally during each transmit.
      */
-    dma_set_number_of_data(DMA1, DMA_CHANNEL5, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
+    dma_set_number_of_data(DMA1, DMA_CHANNEL5, (H_KEEPOUT + H_VISIBLE) / 8);
 
     dma_clear_interrupt_flags(DMA1, DMA_CHANNEL5, DMA_TCIF);
 }
@@ -324,15 +317,15 @@ void dma1_channel3_isr(void) {
 
     if (vline[2] == V_VISIBLE) {
         vflag = vline[2] = 0;
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[0][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)raw_buffer);
     } else {
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)&buffer[vline[2]][0]);
+        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)(raw_buffer + vline[2] * 104));
     }
 
     /* Number of data points needs to be reset as it is decremented
      * internally during each transmit.
      */
-    dma_set_number_of_data(DMA1, DMA_CHANNEL3, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
+    dma_set_number_of_data(DMA1, DMA_CHANNEL3, (H_KEEPOUT + H_VISIBLE) / 8);
 
     dma_clear_interrupt_flags(DMA1, DMA_CHANNEL3, DMA_TCIF);
 }

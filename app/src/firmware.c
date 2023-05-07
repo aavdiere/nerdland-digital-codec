@@ -51,8 +51,13 @@ int main(void) {
 
     glClear();
 
-    glPoint(1, 0, GL_OP_OR);
-    glPoint(3, 0, GL_OP_OR);
+    glPoint(1, 1, GL_OP_OR);
+    glPoint(3, 1, GL_OP_OR);
+    glPoint(5, 1, GL_OP_OR);
+
+    glPoint(1, 599, GL_OP_OR);
+    glPoint(3, 599, GL_OP_OR);
+    glPoint(5, 599, GL_OP_OR);
 
     uint64_t start_time = system_get_ticks();
 
