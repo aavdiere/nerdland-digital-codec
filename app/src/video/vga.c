@@ -1,9 +1,14 @@
-#include "vga.h"
+#include "video/vga.h"
 
 #include <libopencm3/stm32/timer.h>
 
-volatile uint8_t buffer[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8]
-    __attribute__((aligned(4)));
+volatile uint8_t (*raw_buffer)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8] =
+    (volatile uint8_t(*)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8])(0x20000000);
+
+// volatile uint8_t buffer[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8]
+//     __attribute__((aligned(4)));
+// volatile uint8_t (*raw_buffer)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8] = &buffer;
+
 volatile uint8_t *frame_buffer[V_VISIBLE];
 
 static volatile uint8_t  vflag    = 0;
@@ -11,7 +16,6 @@ static volatile uint32_t vline[3] = {0, 0, 0};
 
 void vga_setup(void) {
     buffer_setup();
-    vidDemoScreen();
 
     hsync_setup();
     vsync_setup();
@@ -29,16 +33,6 @@ void buffer_setup(void) {
             buffer[y][x] = 0x00;
         }
         frame_buffer[y] = &buffer[y][H_KEEPOUT / 8];
-    }
-}
-
-void vidDemoScreen(void) {
-    uint16_t x, y;
-
-    for (y = 0; y < V_VISIBLE; y++) {
-        for (x = 0; x < H_VISIBLE / 8; x++) {
-            frame_buffer[y][x] = 0xFF;
-        }
     }
 }
 
@@ -251,12 +245,11 @@ void color_channel_setup(struct color_channel_t color_channel) {
     dma_enable_transfer_complete_interrupt(color_channel.dma, color_channel.dma_channel);
 
     /* Set initial address to beginning of frame */
-    dma_set_memory_address(
-        color_channel.dma, color_channel.dma_channel, (uint32_t)color_channel.frame_buffer);
+    dma_set_memory_address(color_channel.dma, color_channel.dma_channel, (uint32_t)&buffer[0][0]);
     /* Set size to be byte */
     dma_set_memory_size(color_channel.dma, color_channel.dma_channel, DMA_CCR_MSIZE_8BIT);
     dma_set_number_of_data(
-        color_channel.dma, color_channel.dma_channel, color_channel.frame_buffer_size);
+        color_channel.dma, color_channel.dma_channel, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
     /* Peripheral is SPI buffer */
     dma_set_peripheral_address(
         color_channel.dma, color_channel.dma_channel, color_channel.spi_address);

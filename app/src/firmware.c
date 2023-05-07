@@ -6,7 +6,8 @@
 #include <libopencm3/stm32/spi.h>
 
 #include "core/system.h"
-#include "vga.h"
+#include "video/graphics.h"
+#include "video/vga.h"
 
 #define LED_PORT (GPIOC)
 #define LED_PIN (GPIO9)
@@ -47,6 +48,11 @@ int main(void) {
     system_setup();
     gpio_setup();
     vga_setup();
+
+    glClear();
+
+    glPoint(1, 0, GL_OP_OR);
+    glPoint(3, 0, GL_OP_OR);
 
     uint64_t start_time = system_get_ticks();
 

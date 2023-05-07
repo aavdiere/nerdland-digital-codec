@@ -36,8 +36,9 @@ string(TOLOWER ${MCU_FAMILY} MCU_LIBNAME)
 # Files
 add_executable(${BINARY}
     ../app/src/firmware.c
-    ../app/src/vga.c
     ../app/src/core/system.c
+    ../app/src/video/vga.c
+    ../app/src/video/graphics.c
 )
 
 target_include_directories(${BINARY} PRIVATE
