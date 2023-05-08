@@ -45,6 +45,27 @@ void glPoint(uint16_t x, uint16_t y, uint16_t gl_op) {
     }
 }
 
+void glClearPoint(uint16_t x, uint16_t y, uint16_t gl_op) {
+    /* Test for points outside of screen */
+    if (x >= H_VISIBLE || y >= V_VISIBLE)
+        return;
+
+    switch (gl_op) {
+        case GL_OP_COPY:
+        case GL_OP_OR:
+            *PIXEL(x, y) |= 0;
+            break;
+
+        case GL_OP_XOR:
+            *PIXEL(x, y) ^= 0;
+            break;
+
+        case GL_OP_AND:
+            *PIXEL(x, y) &= 0;
+            break;
+    }
+}
+
 /* Use Bresenham algorithm to draw a line */
 void glLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t gl_op) {
     int16_t dx, dy;
@@ -107,26 +128,38 @@ void glRectangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t gl
     glLine(x1, y0, x1, y1, gl_op);
 }
 
-void glSprite(const uint8_t *sprite, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t gl_op) {
+void glSprite(
+    const uint8_t *sprite, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t gl_op) {
     uint16_t dx, dy;
 
     for (dy = 0; dy < h; dy++) {
         for (dx = 0; dx < w; dx++) {
-            if ((sprite[dy * (w >> 3)] >> dx) & 0x1) {
+            if (((sprite[dy * (w >> 3) + (dx >> 3)] >> (7 - (dx & 0b111))) & 0x1) == 0x1) {
                 glPoint(x + dx, y + dy, gl_op);
+            } else {
+                glClearPoint(x + dx, y + dy, GL_OP_AND);
             }
         }
     }
 }
 
-void glChar(const char ch, uint16_t x, uint16_t y, uint16_t gl_op) {
-    uint8_t  char_idx = (uint8_t)ch - 0x20;
-    const uint8_t *sprite   = &font_menlo[char_idx * 32 * 3];
-    glSprite(sprite, x, y, 20, 32, gl_op);
+void glChar(const char               ch,
+            const struct font_config config,
+            const uint8_t           *font,
+            uint16_t                 x,
+            uint16_t                 y,
+            uint16_t                 gl_op) {
+    uint8_t        char_idx = (uint8_t)ch - 0x20;
+    const uint8_t *sprite =
+        &font[char_idx * config.sprite_height_px * (config.sprite_width_px >> 3)];
+    glSprite(sprite, x, y, config.sprite_width_px, config.sprite_height_px, gl_op);
 }
 
 void glText(const char *str, uint16_t x, uint16_t y, uint16_t gl_op) {
+    const struct font_config config = font_ibm_config;
+    const uint8_t           *font   = font_ibm;
+
     for (uint16_t i = 0; i < strlen(str); i++) {
-        glChar(str[i], x, y, gl_op);
+        glChar(str[i], config, font, x + config.char_width_px * i, y, gl_op);
     }
 }

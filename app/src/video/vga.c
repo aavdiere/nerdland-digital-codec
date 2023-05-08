@@ -2,6 +2,8 @@
 
 #include <libopencm3/stm32/timer.h>
 
+#include <libopencm3/cm3/cortex.h>
+
 #define raw_buffer (0x20000000)
 
 // volatile uint8_t (*raw_buffer)[V_VISIBLE][(H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8] =
@@ -30,6 +32,27 @@ void buffer_setup(void) {
 }
 
 void hsync_setup(void) {
+    /*
+     * | Pin  | AF1      | AF2       | AF3 | AF4 |
+     * | ---- | -------- | --------- | --- | --- |
+     * | PA0  | TIM2_CH1 |           |     |     |
+     * | PA1  | TIM2_CH2 |           |     |     |
+     * | PA2  | TIM2_CH3 |           |     |     |
+     * | PA3  | TIM2_CH4 |           |     |     |
+     * | PA8  | TIM1_CH1 |           |     |     |
+     * | PA9  | TIM1_CH2 | TIM1_BKIN |     |     |
+     * | PA10 | TIM1_CH3 |           |     |     |
+     * | PA11 | TIM1_CH4 | TIM1_BKIN |     |     |
+     * | PA15 | TIM2_CH1 |           |     |     |
+     */
+    rcc_periph_clock_enable(RCC_GPIOA);
+
+    /* Configure HSYNC pin in alternative mode (TIM1_CH1) for HSYNC output */
+    /* Decrease output slew rate to handle higher toggle rate */
+    gpio_mode_setup(HSYNC_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, HSYNC_PIN);
+    gpio_set_af(HSYNC_PORT, GPIO_AF1, HSYNC_PIN);
+    gpio_set_output_options(HSYNC_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_HIGH, HSYNC_PIN);
+
     /* Enable TIM1 clock */
     rcc_periph_clock_enable(RCC_TIM1);
 
@@ -43,8 +66,7 @@ void hsync_setup(void) {
     /* Pixel clock should be 40MHz from the 80MHz system clock, set prescaler to / 2 */
     timer_set_prescaler(TIM1, 1);
     /* Maximum counter value of the timer, value AFTER which counter rolls over */
-    /* Some manual tuning required */
-    timer_set_period(TIM1, H_WHOLE_LINE - 1 + 2);
+    timer_set_period(TIM1, H_WHOLE_LINE - 1);
 
     /* Configure TIM1 Channel 1 */
     /* Output compare value */
@@ -60,7 +82,7 @@ void hsync_setup(void) {
     /* Configure TIM1 Channel 2 */
     /* Output compare value */
     /* Some manual tuning required */
-    timer_set_oc_value(TIM1, TIM_OC2, H_SYNC_PULSE + H_BACK_PORCH - H_KEEPOUT - 16);
+    timer_set_oc_value(TIM1, TIM_OC2, H_SYNC_PULSE + H_BACK_PORCH - H_KEEPOUT - 17);
     /* Set PWM mode
      * - PWM1: high if counter < output compare
      * - PWM2: low if counter < output compare
@@ -78,7 +100,7 @@ void hsync_setup(void) {
      * This timer will generate an interrupt that will be used to fire
      * the DMA request to start sending pixels through the SPI.
      */
-    nvic_set_priority(NVIC_TIM1_CC_IRQ, 0);
+    nvic_set_priority(NVIC_TIM1_CC_IRQ, 100);
     nvic_enable_irq(NVIC_TIM1_CC_IRQ);
     timer_enable_irq(TIM1, TIM_DIER_CC2IE);
 }
@@ -90,10 +112,11 @@ void hsync_setup(void) {
  * After which, clear the interrupt flag for the corresponding channel.
  */
 void tim1_cc_isr(void) {
+    // cm_disable_interrupts();
     if (vflag == 1) {
         /* This needs to happen FAST, so raw register is required */
         // *(uint32_t *)((DMA2) + 0x08 + (0x14 * ((DMA_CHANNEL2) - 1))) |= DMA_CCR_EN;
-        *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL5) - 1))) |= DMA_CCR_EN;
+        *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL5)-1))) |= DMA_CCR_EN;
         // *(uint32_t *)((DMA1) + 0x08 + (0x14 * ((DMA_CHANNEL3) - 1))) |= DMA_CCR_EN;
 
         // DMA_CCR(vga_red.dma, vga_red.dma_channel) |= DMA_CCR_EN;
@@ -105,9 +128,31 @@ void tim1_cc_isr(void) {
         // dma_enable_channel(vga_blue.dma, vga_blue.dma_channel);
     }
     timer_clear_flag(TIM1, TIM_SR_CC2IF);
+    // cm_enable_interrupts();
 }
 
 void vsync_setup(void) {
+    /*
+     * | Pin  | AF1      | AF2       | AF3 | AF4 |
+     * | ---- | -------- | --------- | --- | --- |
+     * | PA0  | TIM2_CH1 |           |     |     |
+     * | PA1  | TIM2_CH2 |           |     |     |
+     * | PA2  | TIM2_CH3 |           |     |     |
+     * | PA3  | TIM2_CH4 |           |     |     |
+     * | PA8  | TIM1_CH1 |           |     |     |
+     * | PA9  | TIM1_CH2 | TIM1_BKIN |     |     |
+     * | PA10 | TIM1_CH3 |           |     |     |
+     * | PA11 | TIM1_CH4 | TIM1_BKIN |     |     |
+     * | PA15 | TIM2_CH1 |           |     |     |
+     */
+    rcc_periph_clock_enable(RCC_GPIOA);
+
+    /* Configure VSYNC pin in alternative mode (TIM2_CH1) for VSYNC output */
+    /* Decrease output slew rate to handle higher toggle rate */
+    gpio_mode_setup(VSYNC_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, VSYNC_PIN);
+    gpio_set_af(VSYNC_PORT, GPIO_AF1, VSYNC_PIN);
+    gpio_set_output_options(VSYNC_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_HIGH, VSYNC_PIN);
+
     /* Enable TIM2 clock */
     rcc_periph_clock_enable(RCC_TIM2);
 
@@ -156,7 +201,7 @@ void vsync_setup(void) {
      * the scanning is within a valid frame and the DMA can
      * start sending pixels to the screen.
      */
-    nvic_set_priority(NVIC_TIM2_IRQ, 0);
+    nvic_set_priority(NVIC_TIM2_IRQ, 100);
     nvic_enable_irq(NVIC_TIM2_IRQ);
     timer_enable_irq(TIM2, TIM_DIER_CC2IE);
 }
@@ -167,8 +212,10 @@ void vsync_setup(void) {
  * After which, clear the interrupt flag for the corresponding channel.
  */
 void tim2_isr(void) {
+    // cm_disable_interrupts();
     vflag = 1;
     timer_clear_flag(TIM2, TIM_SR_CC2IF);
+    // cm_enable_interrupts();
 }
 
 void color_channel_setup(struct color_channel_t color_channel) {
@@ -176,7 +223,7 @@ void color_channel_setup(struct color_channel_t color_channel) {
     rcc_periph_clock_enable(color_channel.rcc_dma);
 
     /* Set DMA interrupt priority */
-    nvic_set_priority(color_channel.dma_irqn, 0);
+    nvic_set_priority(color_channel.dma_irqn, 100);
     nvic_enable_irq(color_channel.dma_irqn);
 
     /* Enable GPIO clock */
@@ -215,7 +262,7 @@ void color_channel_setup(struct color_channel_t color_channel) {
     spi_disable_crc(color_channel.spi);
 
     /* Set DMA interrupt priority */
-    nvic_set_priority(color_channel.spi_irqn, 0);
+    nvic_set_priority(color_channel.spi_irqn, 100);
     nvic_enable_irq(color_channel.spi_irqn);
 
     /* Setup DMA */
@@ -261,15 +308,16 @@ void color_channel_setup(struct color_channel_t color_channel) {
  * in the DMA register.
  */
 void dma2_channel2_isr(void) {
+    // cm_disable_interrupts();
     dma_disable_channel(DMA2, DMA_CHANNEL2);
 
     vline[0]++;
 
     if (vline[0] == V_VISIBLE) {
         vflag = vline[0] = 0;
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)raw_buffer);
+        dma_set_memory_address(DMA2, DMA_CHANNEL2, (uint32_t)raw_buffer);
     } else {
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)(raw_buffer + vline[0] * 104));
+        dma_set_memory_address(DMA2, DMA_CHANNEL2, (uint32_t)(raw_buffer + vline[0] * 104));
     }
 
     /* Number of data points needs to be reset as it is decremented
@@ -278,6 +326,7 @@ void dma2_channel2_isr(void) {
     dma_set_number_of_data(DMA2, DMA_CHANNEL2, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
 
     dma_clear_interrupt_flags(DMA2, DMA_CHANNEL2, DMA_TCIF);
+    // cm_enable_interrupts();
 }
 
 /* Green interrupt
@@ -286,6 +335,7 @@ void dma2_channel2_isr(void) {
  * in the DMA register.
  */
 void dma1_channel5_isr(void) {
+    // cm_disable_interrupts();
     dma_disable_channel(DMA1, DMA_CHANNEL5);
 
     vline[1]++;
@@ -303,6 +353,7 @@ void dma1_channel5_isr(void) {
     dma_set_number_of_data(DMA1, DMA_CHANNEL5, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
 
     dma_clear_interrupt_flags(DMA1, DMA_CHANNEL5, DMA_TCIF);
+    // cm_enable_interrupts();
 }
 
 /* Blue interrupt
@@ -311,15 +362,16 @@ void dma1_channel5_isr(void) {
  * in the DMA register.
  */
 void dma1_channel3_isr(void) {
+    // cm_disable_interrupts();
     dma_disable_channel(DMA1, DMA_CHANNEL3);
 
     vline[2]++;
 
     if (vline[2] == V_VISIBLE) {
         vflag = vline[2] = 0;
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)raw_buffer);
+        dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)raw_buffer);
     } else {
-        dma_set_memory_address(DMA1, DMA_CHANNEL5, (uint32_t)(raw_buffer + vline[2] * 104));
+        dma_set_memory_address(DMA1, DMA_CHANNEL3, (uint32_t)(raw_buffer + vline[2] * 104));
     }
 
     /* Number of data points needs to be reset as it is decremented
@@ -328,4 +380,5 @@ void dma1_channel3_isr(void) {
     dma_set_number_of_data(DMA1, DMA_CHANNEL3, (H_KEEPOUT + H_VISIBLE + H_KEEPOUT) / 8);
 
     dma_clear_interrupt_flags(DMA1, DMA_CHANNEL3, DMA_TCIF);
+    // cm_enable_interrupts();
 }

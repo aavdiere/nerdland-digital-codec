@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 
@@ -13,35 +15,52 @@
 #define LED_PIN (GPIO9)
 
 static void gpio_setup(void) {
-    rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_GPIOC);
     gpio_mode_setup(LED_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, LED_PIN);
+}
 
-    /*
-     * | Pin  | AF1      | AF2       | AF3 | AF4 |
-     * | ---- | -------- | --------- | --- | --- |
-     * | PA0  | TIM2_CH1 |           |     |     |
-     * | PA1  | TIM2_CH2 |           |     |     |
-     * | PA2  | TIM2_CH3 |           |     |     |
-     * | PA3  | TIM2_CH4 |           |     |     |
-     * | PA8  | TIM1_CH1 |           |     |     |
-     * | PA9  | TIM1_CH2 | TIM1_BKIN |     |     |
-     * | PA10 | TIM1_CH3 |           |     |     |
-     * | PA11 | TIM1_CH4 | TIM1_BKIN |     |     |
-     * | PA15 | TIM2_CH1 |           |     |     |
-     */
+void clear_screen(void) {
+    for (uint8_t i = 0; i < 22; i++) {
+        glText("                        ", 8, 8 + i * 26, GL_OP_AND);
+    }
+    // uint32_t border = 4;
+    // glRectangle(0 + border, border, 399 - border / 2, 599 - border, GL_OP_OR);
+    // glRectangle(400 + border / 2, border, 799 - border, 599 - border, GL_OP_OR);
 
-    /* Configure HSYNC pin in alternative mode (TIM1_CH1) for HSYNC output */
-    /* Decrease output slew rate to handle higher toggle rate */
-    gpio_mode_setup(HSYNC_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, HSYNC_PIN);
-    gpio_set_af(HSYNC_PORT, GPIO_AF1, HSYNC_PIN);
-    gpio_set_output_options(HSYNC_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_HIGH, HSYNC_PIN);
+    glRectangle(0, 0, 799, 599, GL_OP_OR);
+    glLine(400, 0, 400, 799, GL_OP_OR);
+}
 
-    /* Configure VSYNC pin in alternative mode (TIM2_CH1) for VSYNC output */
-    /* Decrease output slew rate to handle higher toggle rate */
-    gpio_mode_setup(VSYNC_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, VSYNC_PIN);
-    gpio_set_af(VSYNC_PORT, GPIO_AF1, VSYNC_PIN);
-    gpio_set_output_options(VSYNC_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_HIGH, VSYNC_PIN);
+uint8_t px = 0;
+uint8_t py = 0;
+
+void write_char_to_screen(const char ch) {
+    const struct font_config config = font_ibm_config;
+    const uint8_t           *font   = font_ibm;
+
+    if (ch == '\n') {
+        px = 0;
+        py++;
+    } else {
+        glChar(ch, config, font, 8 + config.char_width_px * px, 8 + config.sprite_height_px * py, GL_OP_OR);
+        px++;
+    }
+
+    if (px >= 24) {
+        px = 0;
+        py++;
+    }
+
+    if (py >= 22) {
+        py = 0;
+        clear_screen();
+    }
+}
+
+void write_text_to_screen(const char *str) {
+    for (uint16_t i = 0; i < strlen(str); i++) {
+        write_char_to_screen(str[i]);
+    }
 }
 
 int main(void) {
@@ -50,22 +69,17 @@ int main(void) {
     vga_setup();
 
     glClear();
-
-    uint32_t border = 10;
-    glRectangle(0 + border, border, 400 - border, 600 - border, GL_OP_OR);
-    glRectangle(0 + border, border, 400 - border, 600 - border, GL_OP_OR);
-    glRectangle(400 + border, border, 800 - border, 600 - border, GL_OP_OR);
-    glRectangle(400 + border, border, 800 - border, 600 - border, GL_OP_OR);
-
-    glText("Hello, World!", 20, 20, GL_OP_OR);
+    clear_screen();
 
     uint64_t start_time = system_get_ticks();
 
     /* Infinte loop */
     for (;;) {
         // if (true){
-        if (system_get_ticks() - start_time >= 500) {
+        if (system_get_ticks() - start_time >= 1000 / 5) {
             gpio_toggle(LED_PORT, LED_PIN);
+
+            write_text_to_screen("Hello, World!\n");
 
             start_time = system_get_ticks();
         }
