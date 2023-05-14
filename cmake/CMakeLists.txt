@@ -37,6 +37,7 @@ string(TOLOWER ${MCU_FAMILY} MCU_LIBNAME)
 add_executable(${BINARY}
     ../app/src/firmware.c
     ../app/src/core/system.c
+    ../app/src/core/uart.c
     ../app/src/video/vga.c
     ../app/src/video/graphics.c
     ../app/src/video/font.c

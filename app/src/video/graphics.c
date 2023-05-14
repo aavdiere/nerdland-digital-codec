@@ -163,3 +163,72 @@ void glText(const char *str, uint16_t x, uint16_t y, uint16_t gl_op) {
         glChar(str[i], config, font, x + config.char_width_px * i, y, gl_op);
     }
 }
+
+void clear_full_screen(void) {
+    // uint32_t border = 4;
+    // glRectangle(0 + border, border, 399 - border / 2, 599 - border, GL_OP_OR);
+    // glRectangle(400 + border / 2, border, 799 - border, 599 - border, GL_OP_OR);
+
+    glRectangle(0, 0, 799, 599, GL_OP_OR);
+    glLine(400, 0, 400, 799, GL_OP_OR);
+}
+
+void clear_screen(const int screen_idx) {
+    const uint16_t offset_x = 8 + 400 * screen_idx;
+    const uint16_t offset_y = 8;
+    for (uint8_t i = 0; i < 22; i++) {
+        glText("                        ", offset_x, offset_y + i * 26, GL_OP_AND);
+    }
+}
+
+uint8_t px[] = {0, 0};
+uint8_t py[] = {0, 0};
+
+void write_char_to_screen(const char ch, const int screen_idx) {
+    const struct font_config config = font_ibm_config;
+    const uint8_t           *font   = font_ibm;
+
+    const uint16_t offset_x = 8 + 400 * screen_idx;
+    const uint16_t offset_y = 8;
+
+    for (uint8_t i = 0; i < config.sprite_width_px; i++)
+        for (uint8_t j = 0; j < config.sprite_height_px; j++)
+            glClearPoint(offset_x + config.char_width_px * px[screen_idx] + i,
+                         offset_y + config.sprite_height_px * py[screen_idx] + j,
+                         GL_OP_AND);
+
+    if (ch == '\n') {
+        px[screen_idx] = 0;
+        py[screen_idx]++;
+    } else if (ch >= 0x20 && ch < 0x20 + 95) {
+        glChar(ch,
+               config,
+               font,
+               offset_x + config.char_width_px * px[screen_idx],
+               offset_y + config.sprite_height_px * py[screen_idx],
+               GL_OP_OR);
+        px[screen_idx]++;
+    }
+
+    if (px[screen_idx] >= 24) {
+        px[screen_idx] = 0;
+        py[screen_idx]++;
+    }
+
+    if (py[screen_idx] >= 22) {
+        py[screen_idx] = 0;
+        clear_screen(screen_idx);
+    }
+
+    for (uint8_t i = 0; i < config.sprite_width_px; i++)
+        for (uint8_t j = 0; j < config.sprite_height_px; j++)
+            glPoint(offset_x + config.char_width_px * px[screen_idx] + i,
+                    offset_y + config.sprite_height_px * py[screen_idx] + j,
+                    GL_OP_OR);
+}
+
+void write_text_to_screen(const char *str, const int screen_idx) {
+    for (uint16_t i = 0; i < strlen(str); i++) {
+        write_char_to_screen(str[i], screen_idx);
+    }
+}

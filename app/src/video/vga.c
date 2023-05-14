@@ -82,7 +82,7 @@ void hsync_setup(void) {
     /* Configure TIM1 Channel 2 */
     /* Output compare value */
     /* Some manual tuning required */
-    timer_set_oc_value(TIM1, TIM_OC2, H_SYNC_PULSE + H_BACK_PORCH - H_KEEPOUT - 17);
+    timer_set_oc_value(TIM1, TIM_OC2, H_SYNC_PULSE + H_BACK_PORCH - H_KEEPOUT - 20);
     /* Set PWM mode
      * - PWM1: high if counter < output compare
      * - PWM2: low if counter < output compare
@@ -100,7 +100,7 @@ void hsync_setup(void) {
      * This timer will generate an interrupt that will be used to fire
      * the DMA request to start sending pixels through the SPI.
      */
-    nvic_set_priority(NVIC_TIM1_CC_IRQ, 100);
+    nvic_set_priority(NVIC_TIM1_CC_IRQ, 200);
     nvic_enable_irq(NVIC_TIM1_CC_IRQ);
     timer_enable_irq(TIM1, TIM_DIER_CC2IE);
 }
@@ -127,6 +127,10 @@ void tim1_cc_isr(void) {
         // dma_enable_channel(vga_green.dma, vga_green.dma_channel);
         // dma_enable_channel(vga_blue.dma, vga_blue.dma_channel);
     }
+    // nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ);
+    nvic_enable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+    nvic_enable_irq(NVIC_USART2_IRQ);
+
     timer_clear_flag(TIM1, TIM_SR_CC2IF);
     // cm_enable_interrupts();
 }
@@ -201,7 +205,7 @@ void vsync_setup(void) {
      * the scanning is within a valid frame and the DMA can
      * start sending pixels to the screen.
      */
-    nvic_set_priority(NVIC_TIM2_IRQ, 100);
+    nvic_set_priority(NVIC_TIM2_IRQ, 200);
     nvic_enable_irq(NVIC_TIM2_IRQ);
     timer_enable_irq(TIM2, TIM_DIER_CC2IE);
 }
@@ -223,7 +227,7 @@ void color_channel_setup(struct color_channel_t color_channel) {
     rcc_periph_clock_enable(color_channel.rcc_dma);
 
     /* Set DMA interrupt priority */
-    nvic_set_priority(color_channel.dma_irqn, 100);
+    nvic_set_priority(color_channel.dma_irqn, 200);
     nvic_enable_irq(color_channel.dma_irqn);
 
     /* Enable GPIO clock */
@@ -262,7 +266,7 @@ void color_channel_setup(struct color_channel_t color_channel) {
     spi_disable_crc(color_channel.spi);
 
     /* Set DMA interrupt priority */
-    nvic_set_priority(color_channel.spi_irqn, 100);
+    nvic_set_priority(color_channel.spi_irqn, 200);
     nvic_enable_irq(color_channel.spi_irqn);
 
     /* Setup DMA */
@@ -280,7 +284,7 @@ void color_channel_setup(struct color_channel_t color_channel) {
     /* Increment the memory address */
     dma_enable_memory_increment_mode(color_channel.dma, color_channel.dma_channel);
     /* Medium priority */
-    dma_set_priority(color_channel.dma, color_channel.dma_channel, DMA_CCR_PL_MEDIUM);
+    dma_set_priority(color_channel.dma, color_channel.dma_channel, DMA_CCR_PL_VERY_HIGH);
     /* Enable end of transfer interrupt, this will be used to disable the DMA */
     dma_enable_transfer_complete_interrupt(color_channel.dma, color_channel.dma_channel);
 
@@ -308,6 +312,10 @@ void color_channel_setup(struct color_channel_t color_channel) {
  * in the DMA register.
  */
 void dma2_channel2_isr(void) {
+    // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
+    nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+    nvic_disable_irq(NVIC_USART2_IRQ);
+
     // cm_disable_interrupts();
     dma_disable_channel(DMA2, DMA_CHANNEL2);
 
@@ -335,6 +343,10 @@ void dma2_channel2_isr(void) {
  * in the DMA register.
  */
 void dma1_channel5_isr(void) {
+    // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
+    nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+    nvic_disable_irq(NVIC_USART2_IRQ);
+
     // cm_disable_interrupts();
     dma_disable_channel(DMA1, DMA_CHANNEL5);
 
@@ -362,6 +374,10 @@ void dma1_channel5_isr(void) {
  * in the DMA register.
  */
 void dma1_channel3_isr(void) {
+    // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
+    nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+    nvic_disable_irq(NVIC_USART2_IRQ);
+
     // cm_disable_interrupts();
     dma_disable_channel(DMA1, DMA_CHANNEL3);
 
