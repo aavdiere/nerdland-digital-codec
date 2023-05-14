@@ -25,6 +25,17 @@ int main(void) {
     vga_setup();
     uart_setup();
 
+    gpio_mode_setup(USB_VBUS_EN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, USB_VBUS_EN_PIN);
+    gpio_set_output_options(USB_VBUS_EN_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_LOW, USB_VBUS_EN_PIN);
+
+    gpio_mode_setup(USB_D_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, USB_DP_PIN);
+    gpio_set_af(USB_D_PORT, GPIO_AF10, USB_DP_PIN);
+    gpio_set_output_options(USB_D_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_LOW, USB_DP_PIN);
+
+    gpio_mode_setup(USB_D_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, USB_DM_PIN);
+    gpio_set_af(USB_D_PORT, GPIO_AF10, USB_DM_PIN);
+    gpio_set_output_options(USB_D_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_LOW, USB_DM_PIN);
+
     glClear();
     clear_full_screen();
 

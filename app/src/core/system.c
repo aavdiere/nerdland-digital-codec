@@ -15,8 +15,8 @@ void sys_tick_handler(void) {
 static void rcc_setup(void) {
     /* 80MHz PLL from HSE */
     const struct rcc_clock_scale rcc_hse16_config = {
-        .pllm           = 2,
-        .plln           = 20,
+        .pllm           = 1,
+        .plln           = 10,
         .pllp           = RCC_PLLCFGR_PLLP_DIV7,
         .pllq           = RCC_PLLCFGR_PLLQ_DIV2,
         .pllr           = RCC_PLLCFGR_PLLR_DIV2,
@@ -33,6 +33,8 @@ static void rcc_setup(void) {
 
     // rcc_clock_setup_pll(&rcc_hsi16_configs[RCC_CLOCK_VRANGE1_80MHZ]);
     rcc_clock_setup_pll(&rcc_hse16_config);
+
+    rcc_set_clock48_source(RCC_CCIPR_CLK48SEL_PLLSAI1Q);
 }
 
 static void systick_setup(void) {

@@ -34,4 +34,11 @@
 #define VGA_BLUE_PORT (GPIOA)
 #define VGA_BLUE_PIN (GPIO7)
 
+#define USB_VBUS_EN_PORT (GPIOC)
+#define USB_VBUS_EN_PIN (GPIO9)
+
+#define USB_D_PORT (GPIOA)
+#define USB_DP_PIN (GPIO12)
+#define USB_DM_PIN (GPIO11)
+
 #endif /* __COMMON_H  */
