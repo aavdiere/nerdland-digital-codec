@@ -11,7 +11,7 @@
 uint8_t heartbeat = 0x16;
 uint8_t tx_data[8];
 
-volatile uint8_t tx_done = 1;
+volatile uint8_t tx_done = 0;
 
 volatile uint8_t rx_done = 0;
 volatile char    rx_data = 'A';
@@ -103,16 +103,8 @@ void usart2_isr(void) {
     }
 }
 
-void uart_write(const uint8_t *data, uint8_t size) {
-    for (uint8_t i = 0; i < size; i++) {
-        tx_data[sizeof(tx_data) - 2] = data[i];
-        dma_enable_channel(DMA1, DMA_CHANNEL7);
-        /* Limit character rate */
-        for (uint32_t i = 0; i < 1 << 18; i++)
-            __asm__("nop");
-        while (tx_done == 0)
-            __asm__("nop");
-
-        write_char_to_screen((const char)data[i], 0);
-    }
+void uart_write(const uint8_t data) {
+    tx_data[sizeof(tx_data) - 2] = data;
+    dma_enable_channel(DMA1, DMA_CHANNEL7);
+    write_char_to_screen((const char)data, 0);
 }

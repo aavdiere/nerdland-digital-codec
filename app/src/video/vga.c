@@ -82,7 +82,7 @@ void hsync_setup(void) {
     /* Configure TIM1 Channel 2 */
     /* Output compare value */
     /* Some manual tuning required */
-    timer_set_oc_value(TIM1, TIM_OC2, H_SYNC_PULSE + H_BACK_PORCH - H_KEEPOUT - 20);
+    timer_set_oc_value(TIM1, TIM_OC2, H_SYNC_PULSE + H_BACK_PORCH - H_KEEPOUT - 18);
     /* Set PWM mode
      * - PWM1: high if counter < output compare
      * - PWM2: low if counter < output compare

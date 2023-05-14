@@ -43,16 +43,14 @@ int main(void) {
         if (tx_done == 1) {
             tx_done = 0;
             if (i < strlen(hello_world)) {
-                tx_data[sizeof(tx_data) - 2] = hello_world[i];
-                dma_enable_channel(DMA1, DMA_CHANNEL7);
-                write_char_to_screen(hello_world[i], 0);
-                i++;
+                uart_write(hello_world[i++]);
             }
         }
 
         if (system_get_ticks() - start_time >= 1000) {
-            i          = 0;
-            tx_done    = 1;
+            i = 0;
+            uart_write(hello_world[i++]);
+
             start_time = system_get_ticks();
         }
     }
