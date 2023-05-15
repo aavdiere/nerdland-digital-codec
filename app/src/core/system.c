@@ -51,3 +51,7 @@ void system_setup(void) {
     rcc_setup();
     systick_setup();
 }
+
+uint32_t HAL_GetTick(void) {
+    return ticks;
+}

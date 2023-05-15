@@ -9,10 +9,15 @@
 
 #include <libopencm3/cm3/nvic.h>
 
+// for error handler interrupt
+#include <libopencm3/cm3/cortex.h>
+
 #include "core/system.h"
 #include "core/uart.h"
 #include "video/graphics.h"
 #include "video/vga.h"
+
+#include "usb/usb.h"
 
 extern volatile uint8_t rx_done;
 extern volatile char    rx_data;
@@ -28,18 +33,13 @@ int main(void) {
     gpio_mode_setup(USB_VBUS_EN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, USB_VBUS_EN_PIN);
     gpio_set_output_options(USB_VBUS_EN_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_LOW, USB_VBUS_EN_PIN);
 
-    gpio_mode_setup(USB_D_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, USB_DP_PIN);
-    gpio_set_af(USB_D_PORT, GPIO_AF10, USB_DP_PIN);
-    gpio_set_output_options(USB_D_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_LOW, USB_DP_PIN);
-
-    gpio_mode_setup(USB_D_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE, USB_DM_PIN);
-    gpio_set_af(USB_D_PORT, GPIO_AF10, USB_DM_PIN);
-    gpio_set_output_options(USB_D_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_LOW, USB_DM_PIN);
+    usb_init();
 
     glClear();
     clear_full_screen();
 
     uint64_t start_time = system_get_ticks();
+    uint64_t usb_start_time = 0;
 
     const char *hello_world = "Hello, World!\n";
     uint8_t     i           = 0;
@@ -64,8 +64,23 @@ int main(void) {
 
             start_time = system_get_ticks();
         }
+
+        if (system_get_ticks() - usb_start_time >= 1000) {
+            usb_process();
+
+            usb_start_time = system_get_ticks();
+        }
     }
 
     // Never return
     return 0;
+}
+
+void Error_Handler(void) {
+    /* USER CODE BEGIN Error_Handler_Debug */
+    /* User can add his own implementation to report the HAL error return state */
+    cm_disable_interrupts();
+    while (1) {
+    }
+    /* USER CODE END Error_Handler_Debug */
 }

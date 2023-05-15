@@ -130,6 +130,7 @@ void tim1_cc_isr(void) {
     // nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ);
     nvic_enable_irq(NVIC_DMA1_CHANNEL7_IRQ);
     nvic_enable_irq(NVIC_USART2_IRQ);
+    // nvic_enable_irq(NVIC_OTG_FS_IRQ);
 
     timer_clear_flag(TIM1, TIM_SR_CC2IF);
     // cm_enable_interrupts();
@@ -315,6 +316,7 @@ void dma2_channel2_isr(void) {
     // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
     nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
     nvic_disable_irq(NVIC_USART2_IRQ);
+    // nvic_disable_irq(NVIC_OTG_FS_IRQ);
 
     // cm_disable_interrupts();
     dma_disable_channel(DMA2, DMA_CHANNEL2);
@@ -346,6 +348,7 @@ void dma1_channel5_isr(void) {
     // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
     nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
     nvic_disable_irq(NVIC_USART2_IRQ);
+    // nvic_disable_irq(NVIC_OTG_FS_IRQ);
 
     // cm_disable_interrupts();
     dma_disable_channel(DMA1, DMA_CHANNEL5);
@@ -377,6 +380,7 @@ void dma1_channel3_isr(void) {
     // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
     nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
     nvic_disable_irq(NVIC_USART2_IRQ);
+    // nvic_disable_irq(NVIC_OTG_FS_IRQ);
 
     // cm_disable_interrupts();
     dma_disable_channel(DMA1, DMA_CHANNEL3);

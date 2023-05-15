@@ -11,7 +11,7 @@
         "**/CVS": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
-        "vendor/": true,
+        // "vendor/": true,
     },
     "cmake.configureOnOpen": false,
     "cmake.sourceDirectory": "${workspaceFolder}/cmake",
@@ -29,6 +29,15 @@
         "stdint.h": "c",
         "dma.h": "c",
         "spi.h": "c",
-        "flash.h": "c"
+        "flash.h": "c",
+        "graphics.h": "c",
+        "usart.h": "c",
+        "string.h": "c",
+        "usbh_core.h": "c",
+        "usbh_def.h": "c",
+        "usbh_conf.h": "c",
+        "usb.h": "c",
+        "usb_host.h": "c",
+        "cortex.h": "c"
     }
 }

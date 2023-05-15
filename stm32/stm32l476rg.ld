@@ -18,6 +18,12 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Highest address of the user mode stack */
+_estack = ORIGIN(ram) + LENGTH(ram); /* end of "RAM" Ram type memory */
+
+_Min_Heap_Size = 0x200; /* required amount of heap */
+_Min_Stack_Size = 0x400; /* required amount of stack */
+
 /* Define memory regions. */
 MEMORY
 {
@@ -103,6 +109,18 @@ SECTIONS
 		*(COMMON)
 		. = ALIGN(4);
 		_ebss = .;
+	} >ram
+
+
+	/* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */
+	._user_heap_stack :
+	{
+		. = ALIGN(8);
+		PROVIDE ( end = . );
+		PROVIDE ( _end = . );
+		. = . + _Min_Heap_Size;
+		. = . + _Min_Stack_Size;
+		. = ALIGN(8);
 	} >ram
 
 
