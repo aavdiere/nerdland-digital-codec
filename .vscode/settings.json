@@ -38,6 +38,9 @@
         "usbh_conf.h": "c",
         "usb.h": "c",
         "usb_host.h": "c",
-        "cortex.h": "c"
+        "cortex.h": "c",
+        "stm32l4xx_hal_hcd.h": "c",
+        "stm32l4xx_hal.h": "c",
+        "stm32l4xx.h": "c"
     }
 }

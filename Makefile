@@ -1,7 +1,7 @@
 BINARY			?= stm32-vga
 BUILD_DIR		?= build
 FIRMWARE		?= $(BUILD_DIR)/$(BINARY).bin
-BUILD_TYPE 		?= Debug
+BUILD_TYPE 		?= Release
 DEVICE			?= STM32L476RG
 
 PLATFORM 		= $(if $(OS),$(OS),$(shell uname -s))

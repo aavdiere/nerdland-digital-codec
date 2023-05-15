@@ -122,7 +122,6 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id) {
     /* USER CODE END CALL_BACK_1 */
 }
 
-
 void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
     if (USBH_HID_GetDeviceType(phost) == HID_KEYBOARD) {
         HID_KEYBD_Info_TypeDef *keyboard_info;

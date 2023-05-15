@@ -38,7 +38,7 @@ int main(void) {
     glClear();
     clear_full_screen();
 
-    uint64_t start_time = system_get_ticks();
+    uint64_t start_time     = system_get_ticks();
     uint64_t usb_start_time = 0;
 
     const char *hello_world = "Hello, World!\n";
