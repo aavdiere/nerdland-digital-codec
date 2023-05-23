@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 // TODO: Cleanup
 #include <libopencm3/stm32/dma.h>
@@ -25,6 +26,11 @@ extern volatile char    rx_data;
 extern volatile uint8_t tx_done;
 extern uint8_t          tx_data[8];
 
+extern volatile uint8_t usb_done;
+extern uint8_t pressed[6];
+
+volatile uint8_t ghost_typer = 0;
+
 int main(void) {
     system_setup();
     vga_setup();
@@ -41,8 +47,42 @@ int main(void) {
     uint64_t start_time     = system_get_ticks();
     uint64_t usb_start_time = 0;
 
-    const char *hello_world = "Hello, World!\n";
+    const char *hello_world[] = {
+        "0\n",
+        "1\n",
+        "2\n",
+        "3\n",
+        "4\n",
+        "5\n",
+        "6\n",
+        "7\n",
+        "8\n",
+        "9\n",
+        "10\n",
+        "11\n",
+        "12\n",
+        "13\n",
+        "14\n",
+        "15\n",
+        "16\n",
+        "17\n",
+        "18\n",
+        "19\n",
+        "20\n",
+        "21\n",
+        "22\n",
+        "23\n",
+        "24\n",
+        "25\n",
+        "26\n",
+        "27\n",
+        "28\n",
+        "29\n",
+        "30\n",
+        "31\n"
+    };
     uint8_t     i           = 0;
+    uint8_t     j           = 0;
 
     /* Infinte loop */
     for (;;) {
@@ -51,25 +91,50 @@ int main(void) {
             write_char_to_screen(rx_data, 1);
         }
 
-        if (tx_done == 1) {
-            tx_done = 0;
-            if (i < strlen(hello_world)) {
-                uart_write(hello_world[i++]);
+        if (ghost_typer == 0) {
+            if (usb_done == 1) {
+                usb_done = 0;
+                i = 0;
+                for (uint8_t k = 0; k < sizeof(pressed); k++) {
+                    if (pressed[k] > 0) {
+                        i++;
+                    }
+                }
+                tx_done = 1;
+            }
+
+            if (tx_done == 1) {
+                if (i > 0) {
+                    tx_done = 0;
+                    uart_write(pressed[--i]);
+                }
+            }
+        } else {
+            if (tx_done == 1) {
+                tx_done = 0;
+                if (i < strlen(hello_world[j])) {
+                    uart_write(hello_world[j][i]);
+                    i += 1;
+                }
+            }
+
+            if (system_get_ticks() - start_time >= 1000) {
+                i = 0;
+                j = (j + 1) % 32;
+                tx_done = 0;
+                uart_write(hello_world[j][i]);
+                i += 1;
+
+                start_time = system_get_ticks();
             }
         }
 
-        if (system_get_ticks() - start_time >= 1000) {
-            i = 0;
-            uart_write(hello_world[i++]);
 
-            start_time = system_get_ticks();
-        }
+        usb_process();
+        // if (system_get_ticks() - usb_start_time >= 10) {
 
-        if (system_get_ticks() - usb_start_time >= 1000) {
-            usb_process();
-
-            usb_start_time = system_get_ticks();
-        }
+        //     usb_start_time = system_get_ticks();
+        // }
     }
 
     // Never return

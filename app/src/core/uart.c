@@ -9,7 +9,7 @@
 
 // variables that will be used to synchronize USB and UART
 uint8_t heartbeat = 0x16;
-uint8_t tx_data[8];
+uint8_t tx_data[64];
 
 volatile uint8_t tx_done = 0;
 
@@ -30,7 +30,9 @@ void uart_setup(void) {
     gpio_set_output_options(GPIOA, GPIO_OTYPE_PP, GPIO_OSPEED_LOW, GPIO3);
 
     /* Setup UART parameters. */
-    usart_set_baudrate(USART2, 9600);
+    // usart_set_baudrate(USART2, 115200);
+    usart_set_baudrate(USART2, 19200);
+    // usart_set_baudrate(USART2, 9600);
     // usart_set_baudrate(USART2, 2400);
     usart_set_databits(USART2, 8);
     usart_set_stopbits(USART2, USART_STOPBITS_2);
@@ -90,21 +92,42 @@ void dma1_channel7_isr(void) {
 
 void usart2_isr(void) {
     static uint8_t raw_data;
+    static uint8_t prev_raw_data;
+    static uint8_t heartbeat_counter = 0;
+
     /* Check if we were called because of RXNE. */
     if (((USART_CR1(USART2) & USART_CR1_RXNEIE) != 0)
         && ((USART_ISR(USART2) & USART_ISR_RXNE) != 0)) {
-        raw_data = usart_recv(USART2);
+        prev_raw_data = raw_data;
+        raw_data      = usart_recv(USART2);
 
-        if (raw_data == heartbeat)
-            return;
+        if (rx_done == 0) {
+            if (raw_data == heartbeat) {
+                heartbeat_counter++;
+            } else if ((raw_data == prev_raw_data) && heartbeat_counter > 0) {
+                rx_data           = (char)raw_data;
+                rx_done           = 1;
+                heartbeat_counter = 0;
+            }
+        } else {
+            heartbeat_counter = 0;
+        }
 
-        rx_data = (char)raw_data;
-        rx_done = 1;
+        // if (raw_data == heartbeat) {
+        //     heartbeat_counter++;
+        // } else {
+        //     if (heartbeat_counter > 0) {
+        //         rx_data = (char)raw_data;
+        //         rx_done = 1;
+        //         heartbeat_counter = 0;
+        //     }
+        // }
     }
 }
 
 void uart_write(const uint8_t data) {
-    tx_data[sizeof(tx_data) - 2] = data;
+    for (uint8_t i = sizeof(tx_data) - 8; i < sizeof(tx_data); tx_data[i++] = data)
+        ;
     dma_enable_channel(DMA1, DMA_CHANNEL7);
     write_char_to_screen((const char)data, 0);
 }

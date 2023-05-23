@@ -128,8 +128,8 @@ void tim1_cc_isr(void) {
         // dma_enable_channel(vga_blue.dma, vga_blue.dma_channel);
     }
     // nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ);
-    nvic_enable_irq(NVIC_DMA1_CHANNEL7_IRQ);
-    nvic_enable_irq(NVIC_USART2_IRQ);
+    // nvic_enable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+    // nvic_enable_irq(NVIC_USART2_IRQ);
     // nvic_enable_irq(NVIC_OTG_FS_IRQ);
 
     timer_clear_flag(TIM1, TIM_SR_CC2IF);
@@ -314,8 +314,8 @@ void color_channel_setup(struct color_channel_t color_channel) {
  */
 void dma2_channel2_isr(void) {
     // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
-    nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
-    nvic_disable_irq(NVIC_USART2_IRQ);
+    // nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+    // nvic_disable_irq(NVIC_USART2_IRQ);
     // nvic_disable_irq(NVIC_OTG_FS_IRQ);
 
     // cm_disable_interrupts();
@@ -346,8 +346,8 @@ void dma2_channel2_isr(void) {
  */
 void dma1_channel5_isr(void) {
     // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
-    nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
-    nvic_disable_irq(NVIC_USART2_IRQ);
+    // nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+    // nvic_disable_irq(NVIC_USART2_IRQ);
     // nvic_disable_irq(NVIC_OTG_FS_IRQ);
 
     // cm_disable_interrupts();
@@ -378,8 +378,8 @@ void dma1_channel5_isr(void) {
  */
 void dma1_channel3_isr(void) {
     // nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
-    nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
-    nvic_disable_irq(NVIC_USART2_IRQ);
+    // nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+    // nvic_disable_irq(NVIC_USART2_IRQ);
     // nvic_disable_irq(NVIC_OTG_FS_IRQ);
 
     // cm_disable_interrupts();
