@@ -1,5 +1,7 @@
-# STM Template
-Template project tailored with use with STM32 microcontroller and Visual Studio Code
+# Nerdland Digital Codec
+STM32L4 code used in the Nerdland setup.
+The STM32L4 acts as a USB host and transmit keystrokes via UART.
+Transmitted and received strokes are visualised using VGA.
 
 ## Prerequisites
 
