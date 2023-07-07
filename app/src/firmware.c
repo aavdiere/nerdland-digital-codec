@@ -109,6 +109,10 @@ int main(void) {
                     uart_write(pressed[--i]);
                 }
             }
+        } else if (ghost_typer == 255) {
+            i = 0;
+            j = 0;
+            ghost_typer = 1;
         } else {
             if (tx_done == 1) {
                 tx_done = 0;

@@ -31,6 +31,7 @@ void glText(const char *str, uint16_t x, uint16_t y, uint16_t gl_op);
 
 void clear_full_screen(void);
 void clear_screen(const int screen_idx);
+void clear_all();
 void write_char_to_screen(const char ch, const int screen_idx);
 void write_text_to_screen(const char *str, const int screen_idx);
 

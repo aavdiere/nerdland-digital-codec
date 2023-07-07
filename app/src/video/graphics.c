@@ -184,6 +184,15 @@ void clear_screen(const int screen_idx) {
 uint8_t px[] = {0, 0};
 uint8_t py[] = {0, 0};
 
+void clear_all() {
+    clear_screen(0);
+    px[0] = 0;
+    py[0] = 0;
+    clear_screen(1);
+    py[1] = 0;
+    py[1] = 0;
+}
+
 void write_char_to_screen(const char ch, const int screen_idx) {
     const struct font_config config = font_ibm_config;
     const uint8_t           *font   = font_ibm;

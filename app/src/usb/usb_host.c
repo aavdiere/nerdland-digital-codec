@@ -25,6 +25,8 @@
 #include "usb/usbh_core.h"
 #include "usb/usbh_hid.h"
 
+#include "video/graphics.h"
+
 void Error_Handler(void);
 
 /* USER CODE BEGIN Includes */
@@ -208,9 +210,14 @@ void USBH_HID_EventCallback(USBH_HandleTypeDef *phost) {
         uint8_t released[6] = {0, 0, 0, 0, 0, 0};
         compare_keys(keyboard_info->keys, keycode_buffer, pressed, released);
 
-        if (keyboard_info->lctrl > 0 && keyboard_info->ralt > 0) {
-            ghost_typer = 1 - ghost_typer;
+        if (keyboard_info->lctrl > 0 && keyboard_info->lalt > 0) {
+            if (ghost_typer > 0) ghost_typer = 0;
+            else ghost_typer = 255;
             tx_done = 0;
+        }
+
+        if (keyboard_info->rctrl > 0 && keyboard_info->ralt > 0) {
+            clear_all();
         }
 
         convert_to_ascii(pressed, keyboard_info);
